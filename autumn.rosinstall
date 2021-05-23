@@ -1,0 +1,3 @@
+- git:
+    local-name: ceres-solver
+    uri: https://github.com/stereolabs/zed-ros-wrapper.git
