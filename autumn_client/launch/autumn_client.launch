@@ -11,9 +11,9 @@
         <arg name="custom_rtabmap_launch_file" default="$(find autumn_client)/launch/include/sl_rtabmap.launch.xml"/>
         <include file="$(arg custom_rtabmap_launch_file)">
             <arg name="odom_topic"              default="$(arg zed_node_name)/odom" />
-            <arg name="rgb_topic"               default="$(arg zed_node_name)/rgb/image_rect_color" />
-            <arg name="depth_topic"             default="$(arg zed_node_name)/depth/depth_registered" />
-            <arg name="camera_info_topic"       default="$(arg zed_node_name)/rgb/camera_info" />
+            <arg name="rgb_topic"               default="$(arg zed_node_name)/throttled/rgb/image_rect_color" />
+            <arg name="depth_topic"             default="$(arg zed_node_name)/throttled/depth/depth_registered" />
+            <arg name="camera_info_topic"       default="$(arg zed_node_name)/throttled/rgb/camera_info" />
             <arg name="depth_camera_info_topic" default="$(arg zed_node_name)/depth/camera_info" />
         </include>  
     
