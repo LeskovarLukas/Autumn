@@ -1,0 +1,45 @@
+<launch>
+
+  <arg name="rate"        default="5"/>     <!-- Rate we want to publish over network -->
+  <arg name="approx_sync" default="false"/> <!-- false for zed camera -->
+  <arg name="resolution"  default="3"/>     <!-- Using VGA to use less bandwidth -->
+  <arg name="stereo_sync"   default="true"/>
+
+  <group ns="camera">
+    <node pkg="nodelet" type="nodelet" name="camera_nodelet_manager" args="manager" output="screen"/>
+
+    <include file="$(find zed_wrapper)/launch/include/zed_camera_nodelet.launch"> 
+      <arg name="nodelet_manager_name" value="camera_nodelet_manager"/> 
+    </include>
+
+    <node pkg="tf" type="static_transform_publisher" name="camera_zed_link" args="0 0 0 0 0 0 camera_link zed_camera_center 100"/> 
+
+    <!-- Use same nodelet used by ZED to avoid image serialization -->
+    <node if="$(arg stereo_sync)" pkg="nodelet" type="nodelet" name="stereo_sync" args="load rtabmap_ros/stereo_sync camera_nodelet_manager" output="screen">
+      <param name="compressed_rate"  type="double" value="$(arg rate)"/>
+      <param name="approx_sync"      type="bool"   value="$(arg approx_sync)"/>
+
+      <remap from="left/image_rect"   to="left/image_rect_color"/>
+      <remap from="right/image_rect"  to="right/image_rect_color"/>
+      <remap from="left/camera_info"  to="left/camera_info"/>
+      <remap from="right/camera_info" to="right/camera_info"/>
+
+      <remap from="rgbd_image"      to="rgbd_image"/>
+    </node>
+
+    <node unless="$(arg stereo_sync)" pkg="nodelet" type="nodelet" name="stereo_throttle" args="load rtabmap_ros/stereo_throttle camera_nodelet_manager" output="screen">
+      <param name="rate"         type="double" value="$(arg rate)"/>
+      <param name="approx_sync"  type="bool"   value="$(arg approx_sync)"/>
+
+      <remap from="left/image"        to="left/image_rect_color"/>
+      <remap from="right/image"       to="right/image_rect_color"/>
+      <remap from="left/camera_info"  to="left/camera_info"/>
+      <remap from="right/camera_info" to="right/camera_info"/>
+
+      <remap from="left/image_rect_color_throttle"  to="throttled/left/image_rect_color"/>
+      <remap from="right/image_rect_color_throttle" to="throttled/right/image_rect"/>
+      <remap from="left/camera_info_throttle"       to="throttled/left/camera_info"/>
+      <remap from="right/camera_info_throttle"      to="throttled/right/camera_info"/>
+    </node>
+  </group>    
+</launch>
