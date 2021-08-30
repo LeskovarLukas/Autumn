@@ -28,7 +28,6 @@ private:
   ros::Publisher pubNewNode;
   ros::Publisher pubRandNode;
   ros::Publisher pubPath;
-autum
   std::pair<int, int> generateXrand(double goalDistance);
   bool cellIsFree(int x, int y);
   bool pathIsFree(long node1, long node2, int radius);
