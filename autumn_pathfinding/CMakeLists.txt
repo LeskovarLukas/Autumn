@@ -18,5 +18,5 @@ include_directories(
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-add_executable(explorator src/main.cpp src/PathPlanning.cpp src/Point3D.cpp)
+add_executable(explorator src/main.cpp src/Point3D.cpp src/PathPlanning.cpp)
 target_link_libraries(explorator ${catkin_LIBRARIES} ${PCL_LIBRARIES})
