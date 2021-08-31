@@ -60,7 +60,7 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
     Tree.clear();
     setCenterDelta();
     //check if goal is colliding
-    if (!pathIsFree(goalNode, goalNode, radiusCollisionMin))
+    if (!pathIsFree(goalNode, goalNode, radiusCollisionMax))
     {
       std::cout << "invalid goal!" << '\n';
       return;
@@ -369,8 +369,6 @@ bool PathPlaning::prevPathValid(long newPosNode, long goalNode, int nodeSpacing)
     }
     return true;
   }
-  std::cout << "top level error"
-            << "\n";
   return false;
 }
 

@@ -59,7 +59,8 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "explorator");
   ros::NodeHandle n;
-  pp = new PathPlaning(n, 4, 4);
+  //                      min max
+  pp = new PathPlaning(n, 4, 12);
   ros::Subscriber gridSub = n.subscribe("/zed/map", 1, &gridcallback);
   ros::Subscriber pathSub = n.subscribe("/zed/zed_node/pose", 1, &pathcallback);
   ros::Subscriber goalSub = n.subscribe("/clicked_point", 1, &pointClickedcallback);
