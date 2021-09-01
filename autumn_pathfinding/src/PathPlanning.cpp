@@ -56,7 +56,7 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
     Tree.clear();
     setCenterDelta();
     //check if goal is colliding
-    if (!pathIsFree(goalNode, goalNode, radiusCollisionMax))
+    /*if (!pathIsFree(goalNode, goalNode, radiusCollisionMax))
     {
       std::cout << "invalid goal!" << '\n';
       return;
@@ -66,7 +66,7 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
     if (!pathIsFree(startNode, startNode, radiusCollisionMin))
     {
       std::cout << "colliding start position" << '\n';
-    }
+    }*/
     Point3D::points.insert({startNode, startNode});
     //calculate direct distance start => goal
     double startGoalMinDistance = nodeDistance(goalNode, startNode);
@@ -151,7 +151,7 @@ Point3D PathPlaning::generateXrand(double goalDistance)
   return p;
 }
 
-bool PathPlaning::cellIsFree(int x, int y)
+bool PathPlaning::cellIsFree(float x, float y, float z)
 {
   int index = gridIndex(x, y);
   if (index >= Grid.info.width * Grid.info.height || index < 0)
@@ -163,16 +163,22 @@ bool PathPlaning::cellIsFree(int x, int y)
 
 bool PathPlaning::pathIsFree(Point3D node1, Point3D node2, int radius)
 {
-  std::pair<int, int> cords1 = depairing(node1);
-  std::pair<int, int> cords2 = depairing(node2);
-  for (int i = 0; i <= radius; i++)
+  /*for (int i = 0; i <= radius; i++)
   {
     for (int j = 0; j <= radius - i; j++)
     {
-      if (!cellIsFree(cords1.first + i, cords1.second + j) || !cellIsFree(cords1.first - i, cords1.second + j) || !cellIsFree(cords1.first + i, cords1.second - j) || !cellIsFree(cords1.first - i, cords1.second - j))
-      {
-        return false;
-      }
+      for(int k = 0; j <= radius - i; k++)
+        if (!cellIsFree(node1.x + i, node1.y + j, node1.z + k)
+        || !cellIsFree(node1.x - i, node1.y + j, node1.z +k)
+        || !cellIsFree(node1.x - i, node1.y - j, node1.z +k)
+        || !cellIsFree(node1.x - i, node1.y - j, node1.z -k)
+        || !cellIsFree(node1.x + i, node1.y - j, node1.z -k)
+        || !cellIsFree(node1.x + i, node1.y + j, node1.z -k)
+        || !cellIsFree(node1.x - i, node1.y + j, node1.z -k)
+        || !cellIsFree(node1.x + i, node1.y - j, node1.z +k))
+        {
+          return false;
+        }
     }
   }
   double k = (double)(cords2.second - cords1.second) / (cords2.first - cords1.first == 0 ? 1 : cords2.first - cords1.first);
@@ -219,24 +225,25 @@ bool PathPlaning::pathIsFree(Point3D node1, Point3D node2, int radius)
       }
     }
   }
-  return true;
+  return true;*/
 }
 
 Point3D PathPlaning::getNearestNode(Point3D startNode, Point3D goalNode)
 {
-  std::pair<long, double> minDistance;
+  std::pair<Point3D, double> minDistance;
   minDistance.second = (double)INT_MAX;
-  for (auto node : points)
+  for (auto point : Point3D::points)
   {
-    if (node == goalNode)
+    Point3D node = point.first;
+    if (node.equals(goalNode))
     {
       continue;
     }
-    Point3D tmpNode = node.first;
-    double distance = nodeDistance(node.first, startNode);
+    Point3D tmpNode = node;
+    double distance = nodeDistance(node, startNode);
     if (minDistance.second > distance)
     {
-      minDistance.first = node.first;
+      minDistance.first = node;
       minDistance.second = distance;
     }
   }
@@ -245,18 +252,21 @@ Point3D PathPlaning::getNearestNode(Point3D startNode, Point3D goalNode)
 
 Point3D PathPlaning::generateNewNode(Point3D nearest, Point3D random, int d)
 {
-  std::pair<int, int> nearestCords = depairing(nearest);
-  std::pair<int, int> randomCords = depairing(random);
-  int a = randomCords.first - nearestCords.first;
-  int b = randomCords.second - nearestCords.second;
-  if (a == 0 && b == 0)
+  Point3D p;
+  int a = random.x - nearest.x;
+  int b = random.y - nearest.y;
+  int z = random.z - nearest.z;
+  if (a == 0 && b == 0 && z == 0)
   {
-    return -1;
+    p.valid = false;
+    return p;
   }
-  double c = sqrt(pow(a, 2) + pow(b, 2));
-  int x = (int)(((double)a / c) * d);
-  int y = (int)(((double)b / c) * d);
-  return pairing(nearestCords.first + x, nearestCords.second + y);
+  double c1 = sqrt(pow(a, 2) + pow(b, 2));
+  double c2 = sqrt(pow(c1, 2) + pow(z, 2));
+  p.x = (int)(((double)a / c2) * d);
+  p.y = (int)(((double)b / c2) * d);
+  p.z = (int)(((double)z / c2) * d);
+  return p;
 }
 
 double PathPlaning::getPathLength(Point3D node)
@@ -264,28 +274,29 @@ double PathPlaning::getPathLength(Point3D node)
   double length = 0;
   do
   {
-    length += nodeDistance(node, Tree[node]);
-    if (node == Tree[node])
+    length += nodeDistance(node, Point3D::points[node]);
+    if (node.equals(Point3D::points[node]))
     {
       return -1;
     }
-    node = Tree[node];
-  } while (node != -1);
+    node = Point3D::points[node];
+  } while (!node.start);
   return length;
 }
 
 std::vector<Point3D> PathPlaning::getNearestNeighbors(Point3D node, Point3D goalNode, double range)
 {
-  std::vector<long> neighbors;
-  for (auto n : Tree)
+  std::vector<Point3D> neighbors;
+  for (auto n : Point3D::points)
   {
-    if (nodeDistance(node, n.first) <= range)
+    Point3D nd = n.first;
+    if (nodeDistance(node, nd) <= range)
     {
-      if (n.first == goalNode)
+      if (nd.equals(goalNode))
       {
         continue;
       }
-      neighbors.push_back(n.first);
+      neighbors.push_back(nd);
     }
   }
   return neighbors;
@@ -293,43 +304,44 @@ std::vector<Point3D> PathPlaning::getNearestNeighbors(Point3D node, Point3D goal
 
 bool PathPlaning::prevPathValid(Point3D newPosNode, Point3D goalNode, int nodeSpacing)
 {
-  if (Tree.count(goalNode) > 0)
+  if (Point3D::points.count(goalNode) > 0)
   {
     Point3D node = goalNode;
 
     double minGoalPath = INT_MAX;
-    Point3D minDistNode = nullptr;
+    Point3D *minDistNode = nullptr;
 
-    double pathLength = nodeDistance(goalNode, Tree[goalNode]);
-    while (Tree[node] != -1)
+    double pathLength = nodeDistance(goalNode, Point3D::points[goalNode]);
+    while (!Point3D::points[node].start)
     {
       //check for collisions and loops
-      if (!pathIsFree(node, Tree[node], radiusCollisionMin) || node == Tree[node])
+      if (!pathIsFree(node, Point3D::points[node], radiusCollisionMin) || node.equals(Point3D::points[node]))
       {
-        if (node != Tree[node])
+        if (!node.equals(Point3D::points[node]))
         {
           //locate last node before collision and publish a path based on it
-          long endNode = -1;
-          while (Tree[node] != -1)
+          Point3D endNode;
+          endNode.valid = false;
+          while (!Point3D::points[node].start)
           {
-            if (node == Tree[node])
+            if (node.equals(Point3D::points[node]))
             {
               break;
             }
-            node = Tree[node];
-            if (pathIsFree(node, Tree[node], radiusCollisionMin))
+            node = Point3D::points[node];
+            if (pathIsFree(node, Point3D::points[node], radiusCollisionMin))
             {
-              if (endNode == -1)
+              if (!endNode.valid)
               {
                 endNode = node;
               }
             }
-            else if (Tree[node] != -1)
+            else if (!Point3D::points[node].start)
             {
-              endNode = -1;
+              endNode.valid = false;
             }
           }
-          if (endNode != -1)
+          if (endNode.valid)
           {
             nav_msgs::Path path = generatePath(endNode);
             pubPath.publish(path);
@@ -338,30 +350,30 @@ bool PathPlaning::prevPathValid(Point3D newPosNode, Point3D goalNode, int nodeSp
         }
         return false;
       }
-      node = Tree[node];
+      node = Point3D::points[node];
       //smooth out path by checking if unneccecary nodes exist and rewire
-      if (Tree.count(Tree[Tree[node]]) && nodeDistance(Tree[Tree[node]], node) < nodeSpacing)
+      if (Point3D::points.count(Point3D::points[Point3D::points[node]]) && nodeDistance(Point3D::points[Point3D::points[node]], node) < nodeSpacing)
       {
-        Tree.erase(Tree[node]);
-        Tree[node] = Tree[Tree[node]];
+        Point3D::points.erase(Point3D::points[node]);
+        Point3D::points[node] = Point3D::points[Point3D::points[node]];
       }
       //check closest node to new position
       if (nodeDistance(node, newPosNode) + pathLength < minGoalPath && nodeDistance(node, newPosNode) < nodeSpacing && pathIsFree(node, newPosNode, radiusCollisionMin))
       {
         minGoalPath = nodeDistance(node, newPosNode) + pathLength;
         pathLength += nodeDistance(node, newPosNode);
-        minDistNode = node;
+        *minDistNode = node;
       }
     }
     //check if path has been found
     if (minGoalPath != 0)
     {
-      if (minDistNode == -1)
+      if (minDistNode->start)
       {
         return false;
       }
-      Tree[minDistNode] = newPosNode;
-      Tree[newPosNode] = -1;
+      Point3D::points[*minDistNode] = newPosNode;
+      Point3D::points[newPosNode].start = true;
     }
     return true;
   }

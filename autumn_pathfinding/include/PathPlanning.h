@@ -30,7 +30,7 @@ private:
   ros::Publisher pubRandNode;
   ros::Publisher pubPath;
   Point3D generateXrand(double goalDistance);
-  bool cellIsFree(int x, int y);
+  bool cellIsFree(float x, float y, float z);
   bool pathIsFree(Point3D node1, Point3D node2, int radius);
   Point3D getNearestNode(Point3D startNode, Point3D goalNode);
   Point3D generateNewNode(Point3D nearest, Point3D random, int d);
