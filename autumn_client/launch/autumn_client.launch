@@ -2,7 +2,7 @@
 <launch>
 
     <arg name="zed_node_name"        default="zed_node" />
-    <arg name="camera_name"          default="zed" />
+    <arg name="camera_name"          default="zed2i" />
 
 
     <group ns="$(arg camera_name)">
