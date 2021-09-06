@@ -10,7 +10,7 @@ public:
   Point3D();
   Point3D(float x, float y, float z);
 
-  //3D Point Collection
+  //3D Point Map(key:Node, value:Parent)
   static std::map<Point3D, Point3D> points;
 
   //Methods
