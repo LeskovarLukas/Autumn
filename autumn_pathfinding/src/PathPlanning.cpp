@@ -17,6 +17,7 @@
 #include <time.h>
 //Custom Includes
 #include "PathPlanning.h"
+#include "Point3D.h"
 
 //Consturctor
 PathPlaning::PathPlaning(ros::NodeHandle n, int rMin, int rMax)
@@ -39,7 +40,8 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
   this->goal = goalPoint;
   std::cout << "goal " << goal.x << " " << goal.y << " " << goal.z << '\n';
   ros::Rate pubRate(100);
-  if (isInitialized())
+  Point3D::points.insert({goalPoint, goalPoint});
+  /*if (isInitialized())
   {
     //initialize goal node
     Point3D goalNode = this->goal;
@@ -66,7 +68,7 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
     if (!pathIsFree(startNode, startNode, radiusCollisionMin))
     {
       std::cout << "colliding start position" << '\n';
-    }*/
+    }
     Point3D::points.insert({startNode, startNode});
     //calculate direct distance start => goal
     double startGoalMinDistance = nodeDistance(goalNode, startNode);
@@ -225,7 +227,7 @@ bool PathPlaning::pathIsFree(Point3D node1, Point3D node2, int radius)
       }
     }
   }
-  return true;*/
+  return true;
 }
 
 Point3D PathPlaning::getNearestNode(Point3D startNode, Point3D goalNode)
@@ -387,7 +389,6 @@ geometry_msgs::PointStamped PathPlaning::generatePoint(Point3D node)
   msg.header.seq = 0;
   msg.header.stamp = ros::Time::now();
   msg.header.frame_id = "map";
-  std::pair<int, int> cords = depairing(node);
   msg.point.x = node.x;
   msg.point.y = node.y;
   msg.point.z = node.z;
@@ -400,7 +401,6 @@ geometry_msgs::PoseStamped PathPlaning::generatePose(Point3D node)
   msg.header.seq = 0;
   msg.header.stamp = ros::Time::now();
   msg.header.frame_id = "map";
-  std::pair<int, int> cords = depairing(node);
   msg.pose.position.x = node.x;
   msg.pose.position.y = node.y;
   msg.pose.position.z = node.z;
@@ -421,12 +421,12 @@ nav_msgs::Path PathPlaning::generatePath(Point3D goalNode)
   do
   {
     path.poses.push_back(generatePose(node));
-    if (node == points[node])
+    if (node.equals(Point3D::points[node]))
     {
       break;
     }
-    node = Point3D[node];
-  } while (node != -1);
+    node = Point3D::points[node];
+  } while (!node.start);
   return path;
 }
 
@@ -471,33 +471,10 @@ long PathPlaning::pairing(int x, int y)
 
 double PathPlaning::nodeDistance(Point3D node1, Point3D node2)
 {
-  std::pair<int, int> cords1 = depairing(node1);
-  std::pair<int, int> cords2 = depairing(node2);
-  int a = abs(cords1.first - cords2.first);
-  int b = abs(cords1.second - cords2.second);
-  double c = sqrt(pow(a, 2) + pow(b, 2));
-  return c;
-}
-
-std::pair<int, int> PathPlaning::depairing(long z)
-{
-  int y = (int)(z - gschSum(triangularRoot(z)));
-  int x = (int)(triangularRoot(z) - y);
-  x = x - this->pairingAdditiv;
-  y = y - this->pairingAdditiv;
-
-  return std::pair<int, int>(x, y);
-}
-
-//Mathemetical
-int PathPlaning::gschSum(int w)
-{
-  int f = (w * (w + 1)) / 2;
-  return f;
-}
-
-int PathPlaning::triangularRoot(int z)
-{
-  int q = (int)((sqrt(8 * z + 1) - 1) / 2);
-  return q;
+  int a = abs(node1.x - node2.x);
+  int b = abs(node1.y - node2.y);
+  int z = abs(node1.z - node2.z);
+  double c1 = sqrt(pow(a, 2) + pow(b, 2));
+  double c2 = sqrt(pow(z, 2) + pow(c1, 2));
+  return c2;*/
 }

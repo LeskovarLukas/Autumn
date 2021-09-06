@@ -46,10 +46,6 @@ private:
   void setCenterDelta();
   long pairing(int x, int y);
   double nodeDistance(Point3D node1, Point3D node2);
-  std::pair<int, int> depairing(long z);
-  //Mathemetical
-  int gschSum(int w);
-  int triangularRoot(int z);
 };
 
 #endif
