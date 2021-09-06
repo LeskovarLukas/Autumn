@@ -5,12 +5,12 @@ std::map<Point3D, Point3D> Point3D::points {};
 
 Point3D::Point3D(){}
 
-bool operator<(const elem b) const
+bool Point3D::operator<(const Point3D b) const
 {
-    double x = val.x - b.x;
-    double y = val.y - b.y;
-    double z = val.z - b.z;
-    return (x + y + z) > 0;
+    double xdiff = x - b.x;
+    double ydiff = y - b.y;
+    double zdiff = z - b.z;
+    return (xdiff + ydiff + zdiff) > 0;
 }
 
 Point3D::Point3D(float x, float y, float z){

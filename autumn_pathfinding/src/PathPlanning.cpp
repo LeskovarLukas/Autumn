@@ -40,8 +40,7 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
   this->goal = goalPoint;
   std::cout << "goal " << goal.x << " " << goal.y << " " << goal.z << '\n';
   ros::Rate pubRate(100);
-  Point3D::points.insert({goalPoint, goalPoint});
-  /*if (isInitialized())
+  if (isInitialized())
   {
     //initialize goal node
     Point3D goalNode = this->goal;
@@ -58,7 +57,7 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
     Tree.clear();
     setCenterDelta();
     //check if goal is colliding
-    /*if (!pathIsFree(goalNode, goalNode, radiusCollisionMax))
+    if (!pathIsFree(goalNode, goalNode, radiusCollisionMax))
     {
       std::cout << "invalid goal!" << '\n';
       return;
@@ -226,7 +225,7 @@ bool PathPlaning::pathIsFree(Point3D node1, Point3D node2, int radius)
         return false;
       }
     }
-  }
+  }*/
   return true;
 }
 
@@ -476,5 +475,5 @@ double PathPlaning::nodeDistance(Point3D node1, Point3D node2)
   int z = abs(node1.z - node2.z);
   double c1 = sqrt(pow(a, 2) + pow(b, 2));
   double c2 = sqrt(pow(z, 2) + pow(c1, 2));
-  return c2;*/
+  return c2;
 }

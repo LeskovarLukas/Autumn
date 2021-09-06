@@ -15,6 +15,7 @@ public:
 
   //Methods
   bool equals(Point3D p);
+  bool operator<(const Point3D b) const;
 
   //Member Variables [Cords]
   float x;
