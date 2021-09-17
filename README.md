@@ -11,6 +11,7 @@
 
 ```
 sudo apt install python-wstool python-catkin-tools 
+sudo apt-get install ros-melodic-pcl-ros ros-melodic-pcl-conversions
 ```
 
 ### 3. Installation
