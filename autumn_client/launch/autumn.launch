@@ -13,6 +13,9 @@
 
     <arg name="base_frame"           default="base_link" />
 
+    <!-- RTAB-Map Parameters -->
+    <arg name="visual_odometry"           default="false" />
+    
     <group ns="$(arg camera_name)">
 
         <!-- start ZED Wrapper -->
@@ -29,6 +32,7 @@
         <!-- RTAB-Map -->
         <arg name="custom_rtabmap_launch_file" default="$(find autumn_client)/launch/include/sl_rtabmap.launch.xml"/>
         <include file="$(arg custom_rtabmap_launch_file)">
+            <arg name="visual_odometry"         default="$(arg visual_odometry)"/>
             <arg name="odom_topic"              default="$(arg zed_node_name)/odom" />
             <arg name="rgb_topic"               default="$(arg zed_node_name)/rgb/image_rect_color" />
             <arg name="depth_topic"             default="$(arg zed_node_name)/depth/depth_registered" />
