@@ -9,7 +9,7 @@
     <arg name="camera_model"         default="zed" />
     <arg name="publish_urdf"         default="true" />
 
-    <arg name="camera_name"          default="zed" />
+    <arg name="camera_name"          default="zed2i" />
 
     <arg name="base_frame"           default="base_link" />
 
