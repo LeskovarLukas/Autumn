@@ -12,6 +12,7 @@
     <arg name="depth_camera_info_topic" default="/zed/zed_node/depth/camera_info" />
     <arg name="approx_sync"		        default="false"/>
 
+    <arg name="visual_odometry"         default="false"/>
     <arg name="odom_topic"              default="/zed/zed_node/odom" />  <!-- Odometry topic name -->
     <!--<arg name="odom_topic"              default="odom" />-->
 
@@ -45,6 +46,7 @@
         <remap from="rgb/camera_info"   to="$(arg camera_info_topic)"/>
 
         <remap from="grid_map"          to="map" />
+        <remap from="visual_odometry"   to="$(arg visual_odometry)"/>
         <remap from="odom"              to="$(arg odom_topic)"/>
 
         <!-- localization mode -->
