@@ -1,6 +1,6 @@
 <h1 align="center">Autonomous universal Mapping and Navigation</h1>
 
-## How to Use
+## How to Use Autumn
 
 ### 1. Prerequisites
 
