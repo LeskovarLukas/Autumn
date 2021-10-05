@@ -25,7 +25,7 @@ catkin config --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 # Clone Autumn
 cd ~/catkin_ws/src/
-git clone https://github.com/F-WuTS/Autumn.git
+git clone git@github.com:F-WuTS/Autumn.git
 wstool init . ./Autumn/autumn.rosinstall
 
 # Compile
