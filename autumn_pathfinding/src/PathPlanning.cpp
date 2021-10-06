@@ -164,68 +164,19 @@ bool PathPlaning::cellIsFree(float x, float y, float z)
 
 bool PathPlaning::pathIsFree(Point3D node1, Point3D node2, int radius)
 {
-  /*for (int i = 0; i <= radius; i++)
-  {
-    for (int j = 0; j <= radius - i; j++)
-    {
-      for(int k = 0; j <= radius - i; k++)
-        if (!cellIsFree(node1.x + i, node1.y + j, node1.z + k)
-        || !cellIsFree(node1.x - i, node1.y + j, node1.z +k)
-        || !cellIsFree(node1.x - i, node1.y - j, node1.z +k)
-        || !cellIsFree(node1.x - i, node1.y - j, node1.z -k)
-        || !cellIsFree(node1.x + i, node1.y - j, node1.z -k)
-        || !cellIsFree(node1.x + i, node1.y + j, node1.z -k)
-        || !cellIsFree(node1.x - i, node1.y + j, node1.z -k)
-        || !cellIsFree(node1.x + i, node1.y - j, node1.z +k))
-        {
-          return false;
-        }
-    }
+  if(!sphereIsFree(node1, radius) || !sphereIsFree(node2, radius)){
+    return false;
   }
-  double k = (double)(cords2.second - cords1.second) / (cords2.first - cords1.first == 0 ? 1 : cords2.first - cords1.first);
+  float k1 = ;
   int i = 0;
-  if (abs(k) > 1)
+  if (abs(k) > 1 && !lineIsFree(node1.x, node1.y, node2.x, node2.y, radius))
   {
-    while (i != (cords2.second - cords1.second))
-    {
-      int x = (int)(cords1.first + (int)(i / k));
-      int y = cords1.second + i;
-      for (int j = 1; j <= radius; j++)
-      {
-        if (!cellIsFree(x + j, y) || !cellIsFree(x - j, y) || !cellIsFree(x, y - j) || !cellIsFree(x, y + j))
-        {
-          return false;
-        }
-      }
-      i += (cords2.second - cords1.second) / abs(cords2.second - cords1.second);
-    }
+    return false;
   }
-  else
+  else if(!lineIsFree(node1.y, node1.x, node2.y, node2.x, radius))
   {
-    while (i != (cords2.first - cords1.first))
-    {
-      int x = (cords1.first + i);
-      int y = (int)(cords1.second + (int)(k * (i)));
-      for (int j = 1; j <= radius; j++)
-      {
-        if (!cellIsFree(x + j, y) || !cellIsFree(x - j, y) || !cellIsFree(x, y - j) || !cellIsFree(x, y + j))
-        {
-          return false;
-        }
-      }
-      i += (cords2.first - cords1.first) / abs(cords2.first - cords1.first);
-    }
+    return false;
   }
-  for (int i = 0; i <= radius; i++)
-  {
-    for (int j = 0; j <= radius - i; j++)
-    {
-      if (!cellIsFree(cords2.first + i, cords2.second + j) || !cellIsFree(cords2.first - i, cords2.second + j) || !cellIsFree(cords2.first + i, cords2.second - j) || !cellIsFree(cords2.first - i, cords2.second - j))
-      {
-        return false;
-      }
-    }
-  }*/
   return true;
 }
 
@@ -427,6 +378,47 @@ nav_msgs::Path PathPlaning::generatePath(Point3D goalNode)
     node = Point3D::points[node];
   } while (!node.start);
   return path;
+}
+
+bool PathPlaning::sphereIsFree(Point3D node, int radius){
+  for (int i = 0; i <= radius; i++)
+  {
+    for (int j = 0; j <= radius - i; j++)
+    {
+      for(int k = 0; k <= radius - i; k++)
+      {
+        if (!cellIsFree(node.x + i, node.y + j, node.z + k)
+        || !cellIsFree(node.x - i, node.y + j, node.z +k)
+        || !cellIsFree(node.x - i, node.y - j, node.z +k)
+        || !cellIsFree(node.x - i, node.y - j, node.z -k)
+        || !cellIsFree(node.x + i, node.y - j, node.z -k)
+        || !cellIsFree(node.x + i, node.y + j, node.z -k)
+        || !cellIsFree(node.x - i, node.y + j, node.z -k)
+        || !cellIsFree(node.x + i, node.y - j, node.z +k))
+        {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+bool lineIsFree(int x1, int y1, int x2, int y2, int radius)
+{
+  while (i != (y2 - y1))
+  {
+    int x = (int)(x1 + (int)(i / k));
+    int y = y1 + i;
+    for (int j = 1; j <= radius; j++)
+    {
+      if (!cellIsFree(x + j, y) || !cellIsFree(x - j, y) || !cellIsFree(x, y - j) || !cellIsFree(x, y + j))
+      {
+        return false;
+      }
+    }
+    i += (y2 - y1) / abs(y2 - y1);
+  }
 }
 
 int PathPlaning::gridIndex(int x, int y)

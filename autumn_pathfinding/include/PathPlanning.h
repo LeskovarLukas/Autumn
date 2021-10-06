@@ -23,7 +23,6 @@ private:
   std::pair<int, int> centerDelta;
   int radiusCollisionMin;
   int radiusCollisionMax;
-  const int pairingAdditiv = 10000;
   //ROS Publisher
   ros::Publisher pubNewNode;
   ros::Publisher pubRandNode;
@@ -41,6 +40,8 @@ private:
   geometry_msgs::PointStamped generatePoint(Point3D node);
   geometry_msgs::PoseStamped generatePose(Point3D node);
   nav_msgs::Path generatePath(Point3D goalNode);
+  bool sphereIsFree(Point3D node, int radius);
+  bool lineIsFree(int x1, int y1, int x2, int y2, int radius);
   int gridIndex(int x, int y);
   void setCenterDelta();
   long pairing(int x, int y);
