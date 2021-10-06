@@ -33,15 +33,15 @@ PathPlaning::PathPlaning(ros::NodeHandle n, int rMin, int rMax)
 //PathPlaning Methods
 void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geometry_msgs::Point point, pcl::PointCloud<pcl::PointXYZ> c, int nodeSpacing, int iteratons)
 {
-  this->cloud = c;
   this->Pose = p;
   this->Grid = g;
   Point3D goalPoint(point.x, point.y, point.z);
   this->goal = goalPoint;
-  std::cout << "goal " << goal.x << " " << goal.y << " " << goal.z << '\n';
+  std::cout << "goal " << goal.point.x << " " << goal.point.y << " " << goal.point.z << '\n';
   ros::Rate pubRate(100);
   if (isInitialized())
   {
+    Point3D::addPoints(c);
     //initialize goal node
     Point3D goalNode = this->goal;
     //NEED TO CHECK IF GOAL IS VALID!!
@@ -146,20 +146,19 @@ Point3D PathPlaning::generateXrand(double goalDistance)
   Point3D p((goalDistance * 1.5 + 60) * ((double)rand() / (RAND_MAX)),
             (goalDistance * 1.5 + 60) * ((double)rand() / (RAND_MAX)),
             (goalDistance * 1.5 + 60) * ((double)rand() / (RAND_MAX)));
-  p.x = p.x * pow(-1, rand() % 2);
-  p.y = p.y * pow(-1, rand() % 2);
-  p.z = p.z * pow(-1, rand() % 2);
+  p.point.x = p.point.x * pow(-1, rand() % 2);
+  p.point.y = p.point.y * pow(-1, rand() % 2);
+  p.point.z = p.point.z * pow(-1, rand() % 2);
   return p;
 }
 
 bool PathPlaning::cellIsFree(float x, float y, float z)
 {
-  int index = gridIndex(x, y);
-  if (index >= Grid.info.width * Grid.info.height || index < 0)
-  {
-    return true;
+  PointVls pv(x, y, z);
+  if(Point3D::pointCldDic.count(hashPoint(pv))){
+    return false;
   }
-  return Grid.data[index] != 100;
+  return true;
 }
 
 bool PathPlaning::pathIsFree(Point3D node1, Point3D node2, int radius)
@@ -254,9 +253,9 @@ Point3D PathPlaning::getNearestNode(Point3D startNode, Point3D goalNode)
 Point3D PathPlaning::generateNewNode(Point3D nearest, Point3D random, int d)
 {
   Point3D p;
-  int a = random.x - nearest.x;
-  int b = random.y - nearest.y;
-  int z = random.z - nearest.z;
+  int a = random.point.x - nearest.point.x;
+  int b = random.point.y - nearest.point.y;
+  int z = random.point.z - nearest.point.z;
   if (a == 0 && b == 0 && z == 0)
   {
     p.valid = false;
@@ -264,9 +263,9 @@ Point3D PathPlaning::generateNewNode(Point3D nearest, Point3D random, int d)
   }
   double c1 = sqrt(pow(a, 2) + pow(b, 2));
   double c2 = sqrt(pow(c1, 2) + pow(z, 2));
-  p.x = (int)(((double)a / c2) * d);
-  p.y = (int)(((double)b / c2) * d);
-  p.z = (int)(((double)z / c2) * d);
+  p.point.x = (int)(((double)a / c2) * d);
+  p.point.y = (int)(((double)b / c2) * d);
+  p.point.z = (int)(((double)z / c2) * d);
   return p;
 }
 
@@ -388,9 +387,9 @@ geometry_msgs::PointStamped PathPlaning::generatePoint(Point3D node)
   msg.header.seq = 0;
   msg.header.stamp = ros::Time::now();
   msg.header.frame_id = "map";
-  msg.point.x = node.x;
-  msg.point.y = node.y;
-  msg.point.z = node.z;
+  msg.point.x = node.point.x;
+  msg.point.y = node.point.y;
+  msg.point.z = node.point.z;
   return msg;
 }
 
@@ -400,9 +399,9 @@ geometry_msgs::PoseStamped PathPlaning::generatePose(Point3D node)
   msg.header.seq = 0;
   msg.header.stamp = ros::Time::now();
   msg.header.frame_id = "map";
-  msg.pose.position.x = node.x;
-  msg.pose.position.y = node.y;
-  msg.pose.position.z = node.z;
+  msg.pose.position.x = node.point.x;
+  msg.pose.position.y = node.point.y;
+  msg.pose.position.z = node.point.z;
   msg.pose.orientation.x = 0;
   msg.pose.orientation.y = 0;
   msg.pose.orientation.z = 0;
@@ -470,9 +469,9 @@ long PathPlaning::pairing(int x, int y)
 
 double PathPlaning::nodeDistance(Point3D node1, Point3D node2)
 {
-  int a = abs(node1.x - node2.x);
-  int b = abs(node1.y - node2.y);
-  int z = abs(node1.z - node2.z);
+  int a = abs(node1.point.x - node2.point.x);
+  int b = abs(node1.point.y - node2.point.y);
+  int z = abs(node1.point.z - node2.point.z);
   double c1 = sqrt(pow(a, 2) + pow(b, 2));
   double c2 = sqrt(pow(z, 2) + pow(c1, 2));
   return c2;

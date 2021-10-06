@@ -62,10 +62,10 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
   //                      min max
   pp = new PathPlaning(n, 4, 12);
-  ros::Subscriber gridSub = n.subscribe("/zed2i/map", 1, &gridcallback);
-  ros::Subscriber pathSub = n.subscribe("/zed2i/zed_node/pose", 1, &pathcallback);
+  ros::Subscriber gridSub = n.subscribe("/zedi/map", 1, &gridcallback);
+  ros::Subscriber pathSub = n.subscribe("/zedi/zed_node/pose", 1, &pathcallback);
   ros::Subscriber goalSub = n.subscribe("/clicked_point", 1, &pointClickedcallback);
-  ros::Subscriber cloudSub = n.subscribe("/zed2i/cloud_map", 1, &cloud2dcallback);
+  ros::Subscriber cloudSub = n.subscribe("/zedi/cloud_map", 1, &cloud2dcallback);
 
   ros::spin();
   return 0;

@@ -19,7 +19,6 @@ private:
   nav_msgs::OccupancyGrid Grid;
   geometry_msgs::Pose Pose;
   Point3D goal;
-  pcl::PointCloud<pcl::PointXYZ> cloud;
   std::map<long, long> Tree;
   std::pair<int, int> centerDelta;
   int radiusCollisionMin;
