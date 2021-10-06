@@ -35,7 +35,6 @@ void pathcallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
   geometry_msgs::PoseStamped poseData = *msg;
   currentPose = poseData;
-  std::cout << "Pose recieved! " << std::endl;
   //std::cout << poseData.pose.position << std::endl;
 }
 
@@ -62,9 +61,13 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
   //                      min max
   pp = new PathPlaning(n, 4, 12);
-  ros::Subscriber gridSub = n.subscribe("/zedi/map", 1, &gridcallback);
+  //std::cout << "subscribing to map" << '\n';
+  //ros::Subscriber gridSub = n.subscribe("/zedi/map", 1, &gridcallback);
+  std::cout << "subscribing to pose" << '\n';
   ros::Subscriber pathSub = n.subscribe("/zedi/zed_node/pose", 1, &pathcallback);
+  std::cout << "subscribing to point" << '\n';
   ros::Subscriber goalSub = n.subscribe("/clicked_point", 1, &pointClickedcallback);
+  std::cout << "subscribing to cloud" << '\n';
   ros::Subscriber cloudSub = n.subscribe("/zedi/cloud_map", 1, &cloud2dcallback);
 
   ros::spin();

@@ -33,6 +33,7 @@ PathPlaning::PathPlaning(ros::NodeHandle n, int rMin, int rMax)
 //PathPlaning Methods
 void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geometry_msgs::Point point, pcl::PointCloud<pcl::PointXYZ> c, int nodeSpacing, int iteratons)
 {
+  std::cout << "start" << std::endl;
   this->Pose = p;
   this->Grid = g;
   Point3D goalPoint(point.x, point.y, point.z);
@@ -453,10 +454,11 @@ void PathPlaning::setCenterDelta()
 
 bool PathPlaning::isInitialized()
 {
-  nav_msgs::OccupancyGrid defaultGrid;
+  /*nav_msgs::OccupancyGrid defaultGrid;
   geometry_msgs::Pose defaultPose;
   geometry_msgs::Point defaultGoal;
-  return !(this->Grid == defaultGrid) && !(this->Pose == defaultPose);
+  return !(this->Grid == defaultGrid) && !(this->Pose == defaultPose);*/
+  return true;
 }
 
 long PathPlaning::pairing(int x, int y)
