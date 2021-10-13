@@ -3,13 +3,28 @@
 
 #include <map>
 
-struct PointVls{
+class PointVls{
+public:
   PointVls();
   PointVls(float x, float y, float z);
+  float getX() const;
+  float getY() const;
+  float getZ() const;
 
-  float x;
-  float y;
-  float z;
+  void setX(float x);
+  void setY(float y);
+  void setZ(float z);
+
+ PointVls& operator=(const PointVls& p);
+
+private:
+  const int ajustConstant{100};
+
+  float x{};
+  float y{};
+  float z{};
+
+  float ajustCord(float cord);
 };
 
 struct Point3D
@@ -18,6 +33,8 @@ struct Point3D
   Point3D();
   Point3D(float x, float y, float z);
   Point3D(PointVls p);
+
+  Point3D& operator=(const Point3D& p);
 
   //3D Point Map(key:Node, value:Parent)
   static std::map<Point3D, Point3D> points;
@@ -31,9 +48,9 @@ struct Point3D
   //Member Variables [Cords]
   PointVls point;
 
-  bool valid;
-  bool goal;
-  bool start;
+  bool valid{};
+  bool goal{};
+  bool start{};
 };
 
 long hashPoint(PointVls p);

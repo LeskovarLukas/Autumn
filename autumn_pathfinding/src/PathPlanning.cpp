@@ -31,22 +31,23 @@ PathPlaning::PathPlaning(ros::NodeHandle n, int rMin, int rMax)
 };
 
 //PathPlaning Methods
-void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geometry_msgs::Point point, pcl::PointCloud<pcl::PointXYZ> c, int nodeSpacing, int iteratons)
+void PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl::PointCloud<pcl::PointXYZ> c, int nodeSpacing, int iteratons)
 {
   std::cout << "start" << std::endl;
-  this->Pose = p;
-  this->Grid = g;
-  Point3D goalPoint(point.x, point.y, point.z);
-  this->goal = goalPoint;
-  std::cout << "goal " << goal.point.x << " " << goal.point.y << " " << goal.point.z << '\n';
-  ros::Rate pubRate(100);
-  if (isInitialized())
+  if (isInitialized(c, p, point))
   {
+    this->Pose = p;
+    Point3D goalNode{static_cast<float>(point.x), static_cast<float>(point.y), static_cast<float>(point.z)};
+    goalNode.goal = true;
+    this->goal = goalNode;
+    std::cout << "goal " << goal.point.getX() << " " << goal.point.getY() << " " << goal.point.getZ() << '\n';
+    ros::Rate pubRate(100);
+
     Point3D::addPoints(c);
     //initialize goal node
-    Point3D goalNode = this->goal;
     //NEED TO CHECK IF GOAL IS VALID!!
     Point3D startNode(Pose.position.x, Pose.position.y, Pose.position.z);
+    startNode.start = true;
     //check if previous path is still valid && connects new position to best path node;
     if (prevPathValid(startNode, goalNode, nodeSpacing))
     {
@@ -55,8 +56,6 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
       ros::spinOnce();
       return;
     }
-    Tree.clear();
-    setCenterDelta();
     //check if goal is colliding
     if (!pathIsFree(goalNode, goalNode, radiusCollisionMax))
     {
@@ -79,25 +78,32 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
       Point3D randNode = generateXrand(startGoalMinDistance);
       pubRandNode.publish(generatePoint(randNode));
       //find nearest node to x_rand
-      Point3D nearestNode = getNearestNode(randNode, goalNode);
+      Point3D nearestNode = getNearestNode(randNode);
+      std::cout << "nearest :: " << nearestNode.point.getX() << " " << nearestNode.point.getY() << " " << nearestNode.point.getZ() << '\n';
       //generate new node based of x_near in direction x_rand with distance d
       Point3D newNode = generateNewNode(nearestNode, randNode, nodeSpacing);
       if (Point3D::points.count(newNode) || !newNode.valid)
       { //Check if node is already in Tree
+        std::cout << "continue duplicate " << newNode.point.getX() << " " << newNode.point.getY() << " " << newNode.point.getZ() << '\n';
         continue;
       }
       if (startNode.equals(nearestNode) || pathIsFree(newNode, nearestNode, radiusCollisionMax))
       {
-        //pubNewNode.publish(generatePoint(newNode));
-        //ros::spinOnce();
+        pubNewNode.publish(generatePoint(newNode));
+        ros::spinOnce();
         //Get neighboring nodes
         double range = nodeSpacing; //log(Tree.size()) / pow(Tree.size(), 1/nodeSpacing); //calculate search radius
-        std::vector<Point3D> nearNeighbors = getNearestNeighbors(newNode, goalNode, range);
+        std::vector<Point3D> nearNeighbors = getNearestNeighbors(newNode, range);
+        std::cout << "nearest Neigbors " << '\n';
+        for(Point3D p : nearNeighbors){
+          std::cout << "p: x" << p.point.getX() << " y " << p.point.getY()  << " z " << p.point.getZ() << '\n';
+        }
         //Find closest node to x_new
         Point3D minNeighbor = nearestNode;
         double nearestNodePathLength = getPathLength(nearestNode);
         if (nearestNodePathLength == -1)
         {
+          std::cout << "continue path invalid" << '\n';
           continue;
         }
         double minDist = nearestNodePathLength + nodeDistance(nearestNode, newNode);
@@ -147,9 +153,9 @@ Point3D PathPlaning::generateXrand(double goalDistance)
   Point3D p((goalDistance * 1.5 + 60) * ((double)rand() / (RAND_MAX)),
             (goalDistance * 1.5 + 60) * ((double)rand() / (RAND_MAX)),
             (goalDistance * 1.5 + 60) * ((double)rand() / (RAND_MAX)));
-  p.point.x = p.point.x * pow(-1, rand() % 2);
-  p.point.y = p.point.y * pow(-1, rand() % 2);
-  p.point.z = p.point.z * pow(-1, rand() % 2);
+  p.point.setX(p.point.getX() * pow(-1, rand() % 2));
+  p.point.setY(p.point.getY() * pow(-1, rand() % 2));
+  p.point.setZ(p.point.getZ() * pow(-1, rand() % 2));
   return p;
 }
 
@@ -167,31 +173,29 @@ bool PathPlaning::pathIsFree(Point3D node1, Point3D node2, int radius)
   if(!sphereIsFree(node1, radius) || !sphereIsFree(node2, radius)){
     return false;
   }
-  float k1 = ;
-  int i = 0;
-  if (abs(k) > 1 && !lineIsFree(node1.x, node1.y, node2.x, node2.y, radius))
-  {
-    return false;
-  }
-  else if(!lineIsFree(node1.y, node1.x, node2.y, node2.x, radius))
+                  //float x1   , float y1     , float z1     , float x2     , float y2     , float z2     , int radius
+  if (!lineIsFree(node1.point.getX(), node1.point.getY(), node1.point.getZ(), node2.point.getX(), node2.point.getY(), node2.point.getZ(), radius))
   {
     return false;
   }
   return true;
 }
 
-Point3D PathPlaning::getNearestNode(Point3D startNode, Point3D goalNode)
+Point3D PathPlaning::getNearestNode(Point3D startNode)
 {
   std::pair<Point3D, double> minDistance;
   minDistance.second = (double)INT_MAX;
   for (auto point : Point3D::points)
   {
+    std::cout << "point: " << point.first.point.getX() << " " << point.first.point.getY() << " " <<
+    point.first.point.getZ() << " start " << point.first.start << " goal " << point.first.goal << '\n';
     Point3D node = point.first;
-    if (node.equals(goalNode))
+    if (node.goal)
     {
       continue;
     }
-    Point3D tmpNode = node;
+    std::cout << "node: " << node.point.getX() << " " << node.point.getY() << " " <<
+    node.point.getZ() << " start " << node.start << '\n';
     double distance = nodeDistance(node, startNode);
     if (minDistance.second > distance)
     {
@@ -199,15 +203,17 @@ Point3D PathPlaning::getNearestNode(Point3D startNode, Point3D goalNode)
       minDistance.second = distance;
     }
   }
+  std::cout << "nearest ::::" << minDistance.first.point.getX() << " " << minDistance.first.point.getY() << " " <<
+  minDistance.first.point.getZ() << " start " << minDistance.first.start << '\n';
   return minDistance.first;
 }
 
 Point3D PathPlaning::generateNewNode(Point3D nearest, Point3D random, int d)
 {
   Point3D p;
-  int a = random.point.x - nearest.point.x;
-  int b = random.point.y - nearest.point.y;
-  int z = random.point.z - nearest.point.z;
+  int a = random.point.getX() - nearest.point.getX();
+  int b = random.point.getY() - nearest.point.getY();
+  int z = random.point.getZ() - nearest.point.getZ();
   if (a == 0 && b == 0 && z == 0)
   {
     p.valid = false;
@@ -215,28 +221,32 @@ Point3D PathPlaning::generateNewNode(Point3D nearest, Point3D random, int d)
   }
   double c1 = sqrt(pow(a, 2) + pow(b, 2));
   double c2 = sqrt(pow(c1, 2) + pow(z, 2));
-  p.point.x = (int)(((double)a / c2) * d);
-  p.point.y = (int)(((double)b / c2) * d);
-  p.point.z = (int)(((double)z / c2) * d);
+  p.point.setX((int)(((double)a / c2) * d));
+  p.point.setY((int)(((double)b / c2) * d));
+  p.point.setZ((int)(((double)z / c2) * d));
+  p.valid = true;
   return p;
 }
 
 double PathPlaning::getPathLength(Point3D node)
 {
   double length = 0;
-  do
+  //std::cout << "start " << node.start << " valid " << node.valid << " goal " << node.goal << " hash " << hashPoint(node.point) << '\n';
+  //std::cout << "point: x " << node.point.getX() << " y " << node.point.getY() << " z " << node.point.getZ() << '\n';
+  while (!node.start)
   {
     length += nodeDistance(node, Point3D::points[node]);
     if (node.equals(Point3D::points[node]))
     {
+      //std::cout << "path duplicate node " << hashPoint(node.point) << " parent " << hashPoint(Point3D::points[node].point) << '\n';
       return -1;
     }
     node = Point3D::points[node];
-  } while (!node.start);
+  }
   return length;
 }
 
-std::vector<Point3D> PathPlaning::getNearestNeighbors(Point3D node, Point3D goalNode, double range)
+std::vector<Point3D> PathPlaning::getNearestNeighbors(Point3D node, double range)
 {
   std::vector<Point3D> neighbors;
   for (auto n : Point3D::points)
@@ -244,7 +254,7 @@ std::vector<Point3D> PathPlaning::getNearestNeighbors(Point3D node, Point3D goal
     Point3D nd = n.first;
     if (nodeDistance(node, nd) <= range)
     {
-      if (nd.equals(goalNode))
+      if (nd.goal)
       {
         continue;
       }
@@ -339,9 +349,9 @@ geometry_msgs::PointStamped PathPlaning::generatePoint(Point3D node)
   msg.header.seq = 0;
   msg.header.stamp = ros::Time::now();
   msg.header.frame_id = "map";
-  msg.point.x = node.point.x;
-  msg.point.y = node.point.y;
-  msg.point.z = node.point.z;
+  msg.point.x = node.point.getX();
+  msg.point.y = node.point.getY();
+  msg.point.z = node.point.getZ();
   return msg;
 }
 
@@ -351,9 +361,9 @@ geometry_msgs::PoseStamped PathPlaning::generatePose(Point3D node)
   msg.header.seq = 0;
   msg.header.stamp = ros::Time::now();
   msg.header.frame_id = "map";
-  msg.pose.position.x = node.point.x;
-  msg.pose.position.y = node.point.y;
-  msg.pose.position.z = node.point.z;
+  msg.pose.position.x = node.point.getX();
+  msg.pose.position.y = node.point.getY();
+  msg.pose.position.z = node.point.getZ();
   msg.pose.orientation.x = 0;
   msg.pose.orientation.y = 0;
   msg.pose.orientation.z = 0;
@@ -367,6 +377,7 @@ nav_msgs::Path PathPlaning::generatePath(Point3D goalNode)
   path.header.seq = 0;
   path.header.stamp = ros::Time::now();
   path.header.frame_id = "map";
+  std::cout << "\n" << "goal Path:" << '\n';
   Point3D node = goalNode;
   do
   {
@@ -376,6 +387,7 @@ nav_msgs::Path PathPlaning::generatePath(Point3D goalNode)
       break;
     }
     node = Point3D::points[node];
+    std::cout << "node: x " << node.point.getX() << " y " << node.point.getY() << " z " << node.point.getZ()  << '\n';
   } while (!node.start);
   return path;
 }
@@ -387,14 +399,14 @@ bool PathPlaning::sphereIsFree(Point3D node, int radius){
     {
       for(int k = 0; k <= radius - i; k++)
       {
-        if (!cellIsFree(node.x + i, node.y + j, node.z + k)
-        || !cellIsFree(node.x - i, node.y + j, node.z +k)
-        || !cellIsFree(node.x - i, node.y - j, node.z +k)
-        || !cellIsFree(node.x - i, node.y - j, node.z -k)
-        || !cellIsFree(node.x + i, node.y - j, node.z -k)
-        || !cellIsFree(node.x + i, node.y + j, node.z -k)
-        || !cellIsFree(node.x - i, node.y + j, node.z -k)
-        || !cellIsFree(node.x + i, node.y - j, node.z +k))
+        if (!cellIsFree(node.point.getX() + i, node.point.getY() + j, node.point.getZ() + k)
+        || !cellIsFree(node.point.getX() - i, node.point.getY() + j, node.point.getZ() +k)
+        || !cellIsFree(node.point.getX() - i, node.point.getY() - j, node.point.getZ() +k)
+        || !cellIsFree(node.point.getX() - i, node.point.getY() - j, node.point.getZ() -k)
+        || !cellIsFree(node.point.getX() + i, node.point.getY() - j, node.point.getZ() -k)
+        || !cellIsFree(node.point.getX() + i, node.point.getY() + j, node.point.getZ() -k)
+        || !cellIsFree(node.point.getX() - i, node.point.getY() + j, node.point.getZ() -k)
+        || !cellIsFree(node.point.getX() + i, node.point.getY() - j, node.point.getZ() +k))
         {
           return false;
         }
@@ -404,68 +416,46 @@ bool PathPlaning::sphereIsFree(Point3D node, int radius){
   return true;
 }
 
-bool lineIsFree(int x1, int y1, int x2, int y2, int radius)
+bool PathPlaning::lineIsFree(float x0, float y0, float z0, float x1, float y1, float z1, int radius)
 {
-  while (i != (y2 - y1))
-  {
-    int x = (int)(x1 + (int)(i / k));
-    int y = y1 + i;
-    for (int j = 1; j <= radius; j++)
-    {
-      if (!cellIsFree(x + j, y) || !cellIsFree(x - j, y) || !cellIsFree(x, y - j) || !cellIsFree(x, y + j))
-      {
+   float dx{abs(x1-x0)};
+   int sx{x0<x1 ? 1 : -1};
+   float dy{abs(y1-y0)};
+   int sy{y0<y1 ? 1 : -1};
+   float dz{abs(z1-z0)};
+   int sz{z0<z1 ? 1 : -1};
+   float dm{std::max(dx, std::max(dy, dz))};
+   float i{dm}; /* maximum difference */
+   x1 = y1 = z1 = dm/2; /* error offset */
+
+   Point3D p_tmp;
+   for(;;) {  /* loop */
+      p_tmp.point.setX(x0);
+      p_tmp.point.setY(y0);
+      p_tmp.point.setZ(z0);
+      if(!sphereIsFree(p_tmp, radius)){
         return false;
       }
-    }
-    i += (y2 - y1) / abs(y2 - y1);
-  }
+      if (i-- == 0) break;
+      x1 -= dx; if (x1 < 0) { x1 += dm; x0 += sx; }
+      y1 -= dy; if (y1 < 0) { y1 += dm; y0 += sy; }
+      z1 -= dz; if (z1 < 0) { z1 += dm; z0 += sz; }
+   }
 }
 
-int PathPlaning::gridIndex(int x, int y)
+bool PathPlaning::isInitialized(pcl::PointCloud<pcl::PointXYZ> cloud, geometry_msgs::Pose pose, geometry_msgs::Point goal)
 {
-  int inverseDeltaX = (Grid.info.width + centerDelta.first);
-  int inverseDeltaY = (Grid.info.height + centerDelta.second);
-  if (x <= centerDelta.first || y <= centerDelta.second || x >= inverseDeltaX || y >= inverseDeltaY)
-  {
-    return -1;
-  }
-  int rowPos = (centerDelta.first + x * -1);
-  int row = (centerDelta.second - y) + 2;
-  int tmp = Grid.info.width;
-  return ((row * tmp) + rowPos) * -1;
-}
-
-void PathPlaning::setCenterDelta()
-{
-  int originY = (int)(Grid.info.origin.position.y / Grid.info.resolution);
-  int originX = (int)(Grid.info.origin.position.x / Grid.info.resolution);
-  int deltaY = 0 - originY * -1;
-  int deltaX = 0 - originX * -1;
-  this->centerDelta = std::pair<int, int>(deltaX, deltaY);
-}
-
-bool PathPlaning::isInitialized()
-{
-  /*nav_msgs::OccupancyGrid defaultGrid;
-  geometry_msgs::Pose defaultPose;
-  geometry_msgs::Point defaultGoal;
-  return !(this->Grid == defaultGrid) && !(this->Pose == defaultPose);*/
+  std::cout << "cloud length: " << cloud.points.size() << '\n';
+  std::cout << "pose : " << pose.position << '\n';
+  std::cout << "goal : " << goal << '\n';
   return true;
-}
-
-long PathPlaning::pairing(int x, int y)
-{
-  x = x + this->pairingAdditiv;
-  y = y + this->pairingAdditiv;
-  long z = (0.5 * (x + y) * (x + y + 1) + y);
-  return z;
 }
 
 double PathPlaning::nodeDistance(Point3D node1, Point3D node2)
 {
-  int a = abs(node1.point.x - node2.point.x);
-  int b = abs(node1.point.y - node2.point.y);
-  int z = abs(node1.point.z - node2.point.z);
+  int a = abs(node1.point.getX() - node2.point.getX());
+  int b = abs(node1.point.getY() - node2.point.getY());
+  int z = abs(node1.point.getZ() - node2.point.getZ());
   double c1 = sqrt(pow(a, 2) + pow(b, 2));
   double c2 = sqrt(pow(z, 2) + pow(c1, 2));
   return c2;
