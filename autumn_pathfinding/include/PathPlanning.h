@@ -7,13 +7,13 @@ class PathPlaning
 {
 public:
   //Consturctor
-  PathPlaning(ros::NodeHandle n, int rMin, int rMax);
+  PathPlaning(ros::NodeHandle n, float rMin, float rMax);
 
   //Helper Methodes
   bool isInitialized(pcl::PointCloud<pcl::PointXYZ> cloud, geometry_msgs::Pose pose, geometry_msgs::Point goal);
 
   //PathPlaning Methods
-  void getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl::PointCloud<pcl::PointXYZ> c, int nodeSpacing, int iteratons);
+  void getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl::PointCloud<pcl::PointXYZ> c, float nodeSpacing, int iteratons);
 
 private:
   geometry_msgs::Pose Pose;
@@ -29,7 +29,7 @@ private:
   bool cellIsFree(float x, float y, float z);
   bool pathIsFree(Point3D node1, Point3D node2, int radius);
   Point3D getNearestNode(Point3D startNode);
-  Point3D generateNewNode(Point3D nearest, Point3D random, int d);
+  Point3D generateNewNode(Point3D nearest, Point3D random, float d);
   double getPathLength(Point3D node);
   std::vector<Point3D> getNearestNeighbors(Point3D node, double range);
   bool prevPathValid(Point3D newPosNode, Point3D goalNode, int nodeSpacing);

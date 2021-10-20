@@ -5,6 +5,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <string>
 
 #include "Point3D.h"
 
@@ -52,6 +53,11 @@ PointVls& PointVls::operator=(const PointVls& p){
   y = p.y;
   z = p.z;
   return *this;
+}
+
+std::ostream& operator<<(std::ostream& os, const PointVls& vls) {
+   os << "x: " << vls.getX() << " y: " << vls.getY() << " z: " << vls.getZ() << "\n";
+   return os;
 }
 
 Point3D::Point3D(){

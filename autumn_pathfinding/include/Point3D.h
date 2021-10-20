@@ -27,6 +27,8 @@ private:
   float ajustCord(float cord);
 };
 
+std::ostream& operator<<(std::ostream& os, const PointVls& vls);
+
 struct Point3D
 {
   //Consturctor
