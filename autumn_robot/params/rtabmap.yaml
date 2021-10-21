@@ -32,7 +32,7 @@ Grid:
     3D:                     true
     FlatObstacleDetected:   true
     MapFrameProjection:     false
-    GroundIsObstacle:       false
+    GroundIsObstacle:       true
     PreVoxelFiltering:      true
     RayTracing:             true
     FromDepth:              true
@@ -53,7 +53,7 @@ Grid:
     NoiseFilteringRadius:   0.1
     NormalK:                20
     RangeMin:               0.7
-    RangeMax:               3.0
+    RangeMax:               10.0
 
 GridGlobal:
     Eroded:                 false       # Erode obstacle cells
