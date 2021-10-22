@@ -37,15 +37,15 @@ float PointVls::getZ() const{
 }
 
 void PointVls::setX(float x){
-  this->x = x;
+  this->x = ajustCord(x);
 }
 
 void PointVls::setY(float y){
-  this->y = y;
+  this->y = ajustCord(y);
 }
 
 void PointVls::setZ(float z){
-  this->z = z;
+  this->z = ajustCord(z);
 }
 
 PointVls& PointVls::operator=(const PointVls& p){

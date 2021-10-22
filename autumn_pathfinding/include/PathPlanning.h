@@ -25,7 +25,7 @@ private:
   ros::Publisher pubNewNode;
   ros::Publisher pubRandNode;
   ros::Publisher pubPath;
-  Point3D generateXrand(double goalDistance);
+  Point3D generateXrand(float goalDistance);
   bool cellIsFree(float x, float y, float z);
   bool pathIsFree(Point3D node1, Point3D node2, int radius);
   Point3D getNearestNode(Point3D startNode);
@@ -43,7 +43,7 @@ private:
   bool cellCombinationIsFree(float cord1, float cord2, float cord3);
   int gridIndex(int x, int y);
   long pairing(int x, int y);
-  double nodeDistance(Point3D node1, Point3D node2);
+  float nodeDistance(Point3D node1, Point3D node2);
 };
 
 #endif

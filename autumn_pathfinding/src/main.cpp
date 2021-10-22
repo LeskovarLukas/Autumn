@@ -28,7 +28,7 @@ void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
   geometry_msgs::PointStamped goalPoint = *msg;
   goal = goalPoint;
   //              ZED Position     GOAL Position   D    i
-  pp->getPath(currentPose.pose, goalPoint.point, cloud, 1.2, 500);
+  pp->getPath(currentPose.pose, goalPoint.point, cloud, 0.25, 40000);
 }
 
 void cloud2dcallback(const sensor_msgs::PointCloud2::ConstPtr &msg)
