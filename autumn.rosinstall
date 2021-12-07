@@ -1,3 +1,6 @@
 - git:
     local-name: ceres-solver
     uri: https://github.com/stereolabs/zed-ros-wrapper.git
+-git:
+    local-name: Onboard-SDK-ros
+    uri: clone https://github.com/dji-sdk/Onboard-SDK-ROS.git#3.7
