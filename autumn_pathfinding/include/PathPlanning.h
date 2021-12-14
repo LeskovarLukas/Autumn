@@ -1,55 +1,49 @@
 #ifndef PathPlaning_H
 #define PathPlaning_H
 
+#include "Point3D.h"
+
 class PathPlaning
 {
 public:
   //Consturctor
-  PathPlaning(ros::NodeHandle n, int rMin, int rMax);
+  PathPlaning(ros::NodeHandle n, float rMin, float rMax);
 
   //Helper Methodes
-  bool isInitialized();
+  bool isInitialized(pcl::PointCloud<pcl::PointXYZ> cloud, geometry_msgs::Pose pose, geometry_msgs::Point goal);
 
   //PathPlaning Methods
-  void getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geometry_msgs::Point goal, pcl::PointCloud<pcl::PointXYZ> c, int nodeSpacing, int iteratons);
+  void getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl::PointCloud<pcl::PointXYZ> c, float nodeSpacing, int iteratons);
 
 private:
-  nav_msgs::OccupancyGrid Grid;
   geometry_msgs::Pose Pose;
-  geometry_msgs::Point goal;
-  pcl::PointCloud<pcl::PointXYZ> cloud;
-  std::map<long, long> Tree;
+  Point3D goal;
   std::pair<int, int> centerDelta;
   int radiusCollisionMin;
   int radiusCollisionMax;
-  double exponent;
-  const int pairingAdditiv = 10000;
   //ROS Publisher
   ros::Publisher pubNewNode;
   ros::Publisher pubRandNode;
   ros::Publisher pubPath;
-  std::pair<int, int> generateXrand(double goalDistance);
-  bool cellIsFree(int x, int y);
-  bool pathIsFree(long node1, long node2, int radius);
-  long getNearestNode(int x, int y, long goalNode);
-  long generateNewNode(long nearest, long random, int d);
-  double getPathLength(long node);
-  std::vector<long> getNearestNeighbors(long node, double range, long goalNode);
-  bool prevPathValid(long newPosNode, long goalNode, int nodeSpacing);
+  Point3D generateXrand(float goalDistance);
+  bool cellIsFree(float x, float y, float z);
+  bool pathIsFree(Point3D node1, Point3D node2, int radius);
+  Point3D getNearestNode(Point3D startNode);
+  Point3D generateNewNode(Point3D nearest, Point3D random, float d);
+  double getPathLength(Point3D node);
+  std::vector<Point3D> getNearestNeighbors(Point3D node, double range);
+  bool prevPathValid(Point3D newPosNode, Point3D goalNode, int nodeSpacing);
 
   //Helper Methodes
-  geometry_msgs::PointStamped generatePoint(long node);
-  geometry_msgs::PoseStamped generatePose(long node);
-  nav_msgs::Path generatePath(long goalNode);
+  geometry_msgs::PointStamped generatePoint(Point3D node);
+  geometry_msgs::PoseStamped generatePose(Point3D node);
+  nav_msgs::Path generatePath(Point3D goalNode);
+  bool sphereIsFree(Point3D node, int radius);
+  bool lineIsFree(float x1, float y1, float z1, float x2, float y2, float z2, int radius);
+  bool cellCombinationIsFree(float cord1, float cord2, float cord3);
   int gridIndex(int x, int y);
-  void setCenterDelta();
-  void ajustFloatingPoint();
   long pairing(int x, int y);
-  double nodeDistance(long node1, long node2);
-  std::pair<int, int> depairing(long z);
-  //Mathemetical
-  int gschSum(int w);
-  int triangularRoot(int z);
+  float nodeDistance(Point3D node1, Point3D node2);
 };
 
 #endif

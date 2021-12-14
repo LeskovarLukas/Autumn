@@ -17,9 +17,10 @@
 #include <time.h>
 //Custom Includes
 #include "PathPlanning.h"
+#include "Point3D.h"
 
 //Consturctor
-PathPlaning::PathPlaning(ros::NodeHandle n, int rMin, int rMax)
+PathPlaning::PathPlaning(ros::NodeHandle n, float rMin, float rMax)
 {
   this->pubNewNode = n.advertise<geometry_msgs::PointStamped>("autumn_newNodes", 50);
   this->pubRandNode = n.advertise<geometry_msgs::PointStamped>("autumn_randNode", 10);
@@ -30,25 +31,24 @@ PathPlaning::PathPlaning(ros::NodeHandle n, int rMin, int rMax)
 };
 
 //PathPlaning Methods
-void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geometry_msgs::Point point, pcl::PointCloud<pcl::PointXYZ> c, int nodeSpacing, int iteratons)
+void PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl::PointCloud<pcl::PointXYZ> c, float nodeSpacing, int iteratons)
 {
-  this->cloud = c;
-  this->Pose = p;
-  this->Grid = g;
-  this->goal = point;
-  ros::Rate pubRate(100);
-  if (isInitialized())
+  std::cout << "start" << std::endl;
+  if (isInitialized(c, p, point))
   {
-    //get rid of the floating point
-    this->exponent = pow(10, abs((int)log10(Grid.info.resolution)) + 1);
-    ajustFloatingPoint();
+    this->Pose = p;
+    Point3D goalNode{static_cast<float>(point.x), static_cast<float>(point.y), static_cast<float>(point.z)};
+    goalNode.goal = true;
+    this->goal = goalNode;
+    std::cout << "goal " << goal.point.getX() << " " << goal.point.getY() << " " << goal.point.getZ() << '\n';
+    ros::Rate pubRate(100);
+
+    Point3D::addPoints(c);
     //initialize goal node
-    long goalNode = pairing(goal.x / Grid.info.resolution, goal.y / Grid.info.resolution);
-    if (goalNode == 0)
-    {
-      return;
-    }
-    long startNode = pairing(Pose.position.x / Grid.info.resolution, Pose.position.y / Grid.info.resolution);
+    //NEED TO CHECK IF GOAL IS VALID!!
+    Point3D startNode(Pose.position.x, Pose.position.y, Pose.position.z);
+    std::cout << "start " << startNode.point.getX() << " " << startNode.point.getY() << " " << startNode.point.getZ() << '\n';
+    startNode.start = true;
     //check if previous path is still valid && connects new position to best path node;
     if (prevPathValid(startNode, goalNode, nodeSpacing))
     {
@@ -57,53 +57,66 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
       ros::spinOnce();
       return;
     }
-    Tree.clear();
-    setCenterDelta();
     //check if goal is colliding
     if (!pathIsFree(goalNode, goalNode, radiusCollisionMax))
     {
       std::cout << "invalid goal!" << '\n';
       return;
     }
-    Tree.insert({goalNode, 0});
+    Point3D::points.insert({goalNode, goalNode});
     //add x_init(zed position) to tree
     if (!pathIsFree(startNode, startNode, radiusCollisionMin))
     {
       std::cout << "colliding start position" << '\n';
     }
-    Tree.insert({startNode, -1});
+    Point3D::points.insert({startNode, startNode});
     //calculate direct distance start => goal
-    double startGoalMinDistance = nodeDistance(goalNode, startNode);
+    float startGoalMinDistance = nodeDistance(goalNode, startNode);
+    std::cout << "distance " << startGoalMinDistance << '\n';
+    std::cout << "X: " << abs((goal.point.getX() / startGoalMinDistance) * 1.5) << '\n';
+    std::cout << "Y: " << abs((goal.point.getY() / startGoalMinDistance) * 1.5) << '\n';
+    std::cout << "Z: " << abs((goal.point.getZ() / startGoalMinDistance) * 1.5) << '\n';
+
     double minGoalPath = INT_MAX;
     for (int i = 0; i < iteratons; i++)
     {
+      if(i % 1000 == 0){
+        std::cout << "iteration: " << i << '\n';
+      }
       //generate random Node
-      std::pair<int, int> randCords = generateXrand(startGoalMinDistance);
-      pubRandNode.publish(generatePoint(pairing(randCords.first, randCords.second)));
+      Point3D randNode = generateXrand(startGoalMinDistance);
+      //pubRandNode.publish(generatePoint(randNode));
       //find nearest node to x_rand
-      long nearestNode = getNearestNode(randCords.first, randCords.second, goalNode);
-      //generate new node based of x_near in direction x_rand with distance d
-      long newNode = generateNewNode(nearestNode, pairing(randCords.first, randCords.second), nodeSpacing);
-      if (Tree.count(newNode) || newNode == -1)
-      { //Check if node is already in Tree
+      Point3D nearestNode = getNearestNode(randNode);
+      if(!nearestNode.valid){
+        //std::cout << "nearest Node invalid" << '\n';
         continue;
       }
-      if (startNode == nearestNode || pathIsFree(newNode, nearestNode, radiusCollisionMax))
+      //generate new node based of x_near in direction x_rand with distance d
+      Point3D newNode = generateNewNode(nearestNode, randNode, nodeSpacing);
+      if (Point3D::points.count(newNode) || !newNode.valid)
+      { //Check if node is already in Tree
+        //std::cout << "continue duplicate " << newNode.point.getX() << " " << newNode.point.getY() << " " << newNode.point.getZ() << '\n';
+        continue;
+      }
+      if (nearestNode.start || pathIsFree(newNode, nearestNode, radiusCollisionMax))
       {
         //pubNewNode.publish(generatePoint(newNode));
         //ros::spinOnce();
+        //pubRate.sleep();
         //Get neighboring nodes
         double range = nodeSpacing; //log(Tree.size()) / pow(Tree.size(), 1/nodeSpacing); //calculate search radius
-        std::vector<long> nearNeighbors = getNearestNeighbors(newNode, range, goalNode);
+        std::vector<Point3D> nearNeighbors = getNearestNeighbors(newNode, range);
         //Find closest node to x_new
-        long minNeighbor = nearestNode;
+        Point3D minNeighbor = nearestNode;
         double nearestNodePathLength = getPathLength(nearestNode);
         if (nearestNodePathLength == -1)
         {
+          //std::cout << "continue path invalid" << '\n';
           continue;
         }
         double minDist = nearestNodePathLength + nodeDistance(nearestNode, newNode);
-        for (long node : nearNeighbors)
+        for (Point3D node : nearNeighbors)
         {
           double pathLength = getPathLength(node);
           if (pathLength != -1 && pathLength + nodeDistance(node, newNode) < minDist && pathIsFree(node, newNode, radiusCollisionMax))
@@ -112,28 +125,29 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
             minDist = getPathLength(node) + nodeDistance(node, newNode);
           }
         }
-        Tree.insert({newNode, minNeighbor});
+        Point3D::points.insert({newNode, minNeighbor});
         //Rewire neighbors to optimal pathSub
-        for (long node : nearNeighbors)
+        for (Point3D node : nearNeighbors)
         {
           double pathLength = getPathLength(node);
           if (pathLength != -1 && getPathLength(newNode) + nodeDistance(node, newNode) < pathLength && pathIsFree(newNode, node, radiusCollisionMax))
           {
-            Tree[node] = newNode;
+            Point3D::points[node] = newNode;
           }
         }
         //Check if goal is within reach
         double goalNewNodeDist = nodeDistance(newNode, goalNode);
         if (goalNewNodeDist <= nodeSpacing && getPathLength(newNode) + goalNewNodeDist < minGoalPath && pathIsFree(goalNode, newNode, radiusCollisionMax))
         {
-          Tree[goalNode] = newNode;
+          Point3D::points[goalNode] = newNode;
           minGoalPath = getPathLength(newNode) + goalNewNodeDist;
+          nav_msgs::Path path = generatePath(goalNode);
+          pubPath.publish(path);
           //break;
         }
         //pubRate.sleep();
       }
     }
-    std::cout << "goal parent " << Tree[goalNode] << "\n";
     nav_msgs::Path path = generatePath(goalNode);
     pubPath.publish(path);
     ros::spinOnce();
@@ -145,195 +159,160 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
   }
 }
 
-std::pair<int, int> PathPlaning::generateXrand(double goalDistance)
+Point3D PathPlaning::generateXrand(float goalDistance)
 {
-  int x = (goalDistance * 1.5 + 60) * ((double)rand() / (RAND_MAX));
-  int y = (goalDistance * 1.5 + 60) * ((double)rand() / (RAND_MAX));
-  x = x * pow(-1, rand() % 2);
-  y = y * pow(-1, rand() % 2);
-  return std::pair<int, int>(x, y);
+  Point3D p((abs((goal.point.getX() / goalDistance) * 1.5) * goalDistance + 0.60) * ((double)rand() / (RAND_MAX)),
+            (abs((goal.point.getY() / goalDistance) * 1.5) * goalDistance + 0.60) * ((double)rand() / (RAND_MAX)),
+            (abs((goal.point.getZ() / goalDistance) * 1.5) * goalDistance + 0.60) * ((double)rand() / (RAND_MAX)));
+  p.point.setX(p.point.getX() * pow(-1, rand() % 2));
+  p.point.setY(p.point.getY() * pow(-1, rand() % 2));
+  p.point.setZ(p.point.getZ() * pow(-1, rand() % 2));
+  return p;
 }
 
-bool PathPlaning::cellIsFree(int x, int y)
+bool PathPlaning::cellIsFree(float x, float y, float z)
 {
-  int index = gridIndex(x, y);
-  if (index >= Grid.info.width * Grid.info.height || index < 0)
-  {
-    return true;
-  }
-  return Grid.data[index] != 100;
-}
-
-bool PathPlaning::pathIsFree(long node1, long node2, int radius)
-{
-  std::pair<int, int> cords1 = depairing(node1);
-  std::pair<int, int> cords2 = depairing(node2);
-  for (int i = 0; i <= radius; i++)
-  {
-    for (int j = 0; j <= radius - i; j++)
-    {
-      if (!cellIsFree(cords1.first + i, cords1.second + j) || !cellIsFree(cords1.first - i, cords1.second + j) || !cellIsFree(cords1.first + i, cords1.second - j) || !cellIsFree(cords1.first - i, cords1.second - j))
-      {
-        return false;
-      }
-    }
-  }
-  double k = (double)(cords2.second - cords1.second) / (cords2.first - cords1.first == 0 ? 1 : cords2.first - cords1.first);
-  int i = 0;
-  if (abs(k) > 1)
-  {
-    while (i != (cords2.second - cords1.second))
-    {
-      int x = (int)(cords1.first + (int)(i / k));
-      int y = cords1.second + i;
-      for (int j = 1; j <= radius; j++)
-      {
-        if (!cellIsFree(x + j, y) || !cellIsFree(x - j, y) || !cellIsFree(x, y - j) || !cellIsFree(x, y + j))
-        {
-          return false;
-        }
-      }
-      i += (cords2.second - cords1.second) / abs(cords2.second - cords1.second);
-    }
-  }
-  else
-  {
-    while (i != (cords2.first - cords1.first))
-    {
-      int x = (cords1.first + i);
-      int y = (int)(cords1.second + (int)(k * (i)));
-      for (int j = 1; j <= radius; j++)
-      {
-        if (!cellIsFree(x + j, y) || !cellIsFree(x - j, y) || !cellIsFree(x, y - j) || !cellIsFree(x, y + j))
-        {
-          return false;
-        }
-      }
-      i += (cords2.first - cords1.first) / abs(cords2.first - cords1.first);
-    }
-  }
-  for (int i = 0; i <= radius; i++)
-  {
-    for (int j = 0; j <= radius - i; j++)
-    {
-      if (!cellIsFree(cords2.first + i, cords2.second + j) || !cellIsFree(cords2.first - i, cords2.second + j) || !cellIsFree(cords2.first + i, cords2.second - j) || !cellIsFree(cords2.first - i, cords2.second - j))
-      {
-        return false;
-      }
-    }
+  PointVls pv(x, y, z);
+  if(Point3D::pointCldDic.count(hashPoint(pv))){
+    return false;
   }
   return true;
 }
 
-long PathPlaning::getNearestNode(int x, int y, long goalNode)
+bool PathPlaning::pathIsFree(Point3D node1, Point3D node2, int radius)
 {
-  long startNode = pairing(x, y);
-  std::pair<long, double> minDistance;
-  minDistance.second = (double)INT_MAX;
-  for (auto node : Tree)
+  if(!sphereIsFree(node1, radius) || !sphereIsFree(node2, radius)){
+    return false;
+  }
+                  //float x1   , float y1     , float z1     , float x2     , float y2     , float z2     , int radius
+  if (!lineIsFree(node1.point.getX(), node1.point.getY(), node1.point.getZ(), node2.point.getX(), node2.point.getY(), node2.point.getZ(), radius))
   {
-    if (node.first == goalNode)
+    return false;
+  }
+  return true;
+}
+
+Point3D PathPlaning::getNearestNode(Point3D startNode)
+{
+  std::pair<Point3D, double> minDistance;
+  minDistance.second = (double)INT_MAX;
+  bool valid = false;
+  for (auto point : Point3D::points)
+  {
+    Point3D node = point.first;
+    if (node.goal)
     {
       continue;
     }
-    std::pair<int, int> tmpNode = depairing(node.first);
-    double distance = nodeDistance(node.first, startNode);
+    double distance = nodeDistance(node, startNode);
     if (minDistance.second > distance)
     {
-      minDistance.first = node.first;
+      valid = true;
+      minDistance.first = node;
       minDistance.second = distance;
     }
   }
+  minDistance.first.valid = valid;
   return minDistance.first;
 }
 
-long PathPlaning::generateNewNode(long nearest, long random, int d)
+Point3D PathPlaning::generateNewNode(Point3D nearest, Point3D random, float d)
 {
-  std::pair<int, int> nearestCords = depairing(nearest);
-  std::pair<int, int> randomCords = depairing(random);
-  int a = randomCords.first - nearestCords.first;
-  int b = randomCords.second - nearestCords.second;
-  if (a == 0 && b == 0)
+  Point3D p;
+  float a = random.point.getX() - nearest.point.getX();
+  float b = random.point.getY() - nearest.point.getY();
+  float z = random.point.getZ() - nearest.point.getZ();
+  if (a == 0 && b == 0 && z == 0)
   {
-    return -1;
+    p.valid = false;
+    return p;
   }
-  double c = sqrt(pow(a, 2) + pow(b, 2));
-  int x = (int)(((double)a / c) * d);
-  int y = (int)(((double)b / c) * d);
-  return pairing(nearestCords.first + x, nearestCords.second + y);
+  double c1 = sqrt(pow(a, 2) + pow(b, 2));
+  double c2 = sqrt(pow(c1, 2) + pow(z, 2));
+  p.point.setX(nearest.point.getX() + ((a / c2) * d));
+  p.point.setY(nearest.point.getY() + ((b / c2) * d));
+  p.point.setZ(nearest.point.getZ() + ((z / c2) * d));
+
+  p.valid = true;
+  return p;
 }
 
-double PathPlaning::getPathLength(long node)
+double PathPlaning::getPathLength(Point3D node)
 {
   double length = 0;
   do
   {
-    length += nodeDistance(node, Tree[node]);
-    if (node == Tree[node])
+    if(node.start){
+      break;
+    }
+    length += nodeDistance(node, Point3D::points[node]);
+    if (node.equals(Point3D::points[node]))
     {
       return -1;
     }
-    node = Tree[node];
-  } while (node != -1);
+    node = Point3D::points[node];
+  }while (!node.start);
   return length;
 }
 
-std::vector<long> PathPlaning::getNearestNeighbors(long node, double range, long goalNode)
+std::vector<Point3D> PathPlaning::getNearestNeighbors(Point3D node, double range)
 {
-  std::vector<long> neighbors;
-  for (auto n : Tree)
+  std::vector<Point3D> neighbors;
+  for (auto n : Point3D::points)
   {
-    if (nodeDistance(node, n.first) <= range)
+    Point3D nd = n.first;
+    if (nodeDistance(node, nd) <= range)
     {
-      if (n.first == goalNode)
+      if (nd.goal)
       {
         continue;
       }
-      neighbors.push_back(n.first);
+      neighbors.push_back(nd);
     }
   }
   return neighbors;
 }
 
-bool PathPlaning::prevPathValid(long newPosNode, long goalNode, int nodeSpacing)
+bool PathPlaning::prevPathValid(Point3D newPosNode, Point3D goalNode, int nodeSpacing)
 {
-  if (Tree.count(goalNode) > 0)
+  if (Point3D::points.count(goalNode) > 0)
   {
-    long node = goalNode;
+    Point3D node = goalNode;
 
     double minGoalPath = INT_MAX;
-    long minDistNode = -1;
+    Point3D *minDistNode = nullptr;
 
-    double pathLength = nodeDistance(goalNode, Tree[goalNode]);
-    while (Tree[node] != -1)
+    double pathLength = nodeDistance(goalNode, Point3D::points[goalNode]);
+    while (!Point3D::points[node].start)
     {
       //check for collisions and loops
-      if (!pathIsFree(node, Tree[node], radiusCollisionMin) || node == Tree[node])
+      if (!pathIsFree(node, Point3D::points[node], radiusCollisionMin) || node.equals(Point3D::points[node]))
       {
-        if (node != Tree[node])
+        if (!node.equals(Point3D::points[node]))
         {
           //locate last node before collision and publish a path based on it
-          long endNode = -1;
-          while (Tree[node] != -1)
+          Point3D endNode;
+          endNode.valid = false;
+          while (!Point3D::points[node].start)
           {
-            if (node == Tree[node])
+            if (node.equals(Point3D::points[node]))
             {
               break;
             }
-            node = Tree[node];
-            if (pathIsFree(node, Tree[node], radiusCollisionMin))
+            node = Point3D::points[node];
+            if (pathIsFree(node, Point3D::points[node], radiusCollisionMin))
             {
-              if (endNode == -1)
+              if (!endNode.valid)
               {
                 endNode = node;
               }
             }
-            else if (Tree[node] != -1)
+            else if (!Point3D::points[node].start)
             {
-              endNode = -1;
+              endNode.valid = false;
             }
           }
-          if (endNode != -1)
+          if (endNode.valid)
           {
             nav_msgs::Path path = generatePath(endNode);
             pubPath.publish(path);
@@ -342,30 +321,30 @@ bool PathPlaning::prevPathValid(long newPosNode, long goalNode, int nodeSpacing)
         }
         return false;
       }
-      node = Tree[node];
+      node = Point3D::points[node];
       //smooth out path by checking if unneccecary nodes exist and rewire
-      if (Tree.count(Tree[Tree[node]]) && nodeDistance(Tree[Tree[node]], node) < nodeSpacing)
+      if (Point3D::points.count(Point3D::points[Point3D::points[node]]) && nodeDistance(Point3D::points[Point3D::points[node]], node) < nodeSpacing)
       {
-        Tree.erase(Tree[node]);
-        Tree[node] = Tree[Tree[node]];
+        Point3D::points.erase(Point3D::points[node]);
+        Point3D::points[node] = Point3D::points[Point3D::points[node]];
       }
       //check closest node to new position
       if (nodeDistance(node, newPosNode) + pathLength < minGoalPath && nodeDistance(node, newPosNode) < nodeSpacing && pathIsFree(node, newPosNode, radiusCollisionMin))
       {
         minGoalPath = nodeDistance(node, newPosNode) + pathLength;
         pathLength += nodeDistance(node, newPosNode);
-        minDistNode = node;
+        *minDistNode = node;
       }
     }
     //check if path has been found
     if (minGoalPath != 0)
     {
-      if (minDistNode == -1)
+      if (minDistNode->start)
       {
         return false;
       }
-      Tree[minDistNode] = newPosNode;
-      Tree[newPosNode] = -1;
+      Point3D::points[*minDistNode] = newPosNode;
+      Point3D::points[newPosNode].start = true;
     }
     return true;
   }
@@ -373,29 +352,27 @@ bool PathPlaning::prevPathValid(long newPosNode, long goalNode, int nodeSpacing)
 }
 
 //Helper Methods
-geometry_msgs::PointStamped PathPlaning::generatePoint(long node)
+geometry_msgs::PointStamped PathPlaning::generatePoint(Point3D node)
 {
   geometry_msgs::PointStamped msg;
   msg.header.seq = 0;
   msg.header.stamp = ros::Time::now();
   msg.header.frame_id = "map";
-  std::pair<int, int> cords = depairing(node);
-  msg.point.x = (cords.first * Grid.info.resolution) / exponent;
-  msg.point.y = (cords.second * Grid.info.resolution) / exponent;
-  msg.point.z = 0;
+  msg.point.x = node.point.getX();
+  msg.point.y = node.point.getY();
+  msg.point.z = node.point.getZ();
   return msg;
 }
 
-geometry_msgs::PoseStamped PathPlaning::generatePose(long node)
+geometry_msgs::PoseStamped PathPlaning::generatePose(Point3D node)
 {
   geometry_msgs::PoseStamped msg;
   msg.header.seq = 0;
   msg.header.stamp = ros::Time::now();
   msg.header.frame_id = "map";
-  std::pair<int, int> cords = depairing(node);
-  msg.pose.position.x = (cords.first * Grid.info.resolution) / exponent;
-  msg.pose.position.y = (cords.second * Grid.info.resolution) / exponent;
-  msg.pose.position.z = 0;
+  msg.pose.position.x = node.point.getX();
+  msg.pose.position.y = node.point.getY();
+  msg.pose.position.z = node.point.getZ();
   msg.pose.orientation.x = 0;
   msg.pose.orientation.y = 0;
   msg.pose.orientation.z = 0;
@@ -403,111 +380,92 @@ geometry_msgs::PoseStamped PathPlaning::generatePose(long node)
   return msg;
 }
 
-nav_msgs::Path PathPlaning::generatePath(long goalNode)
+nav_msgs::Path PathPlaning::generatePath(Point3D goalNode)
 {
   nav_msgs::Path path;
   path.header.seq = 0;
   path.header.stamp = ros::Time::now();
   path.header.frame_id = "map";
-  long node = goalNode;
+  std::cout << "\n" << "goal Path:" << '\n';
+  Point3D node = goalNode;
   do
   {
     path.poses.push_back(generatePose(node));
-    if (node == Tree[node])
+    if (node.equals(Point3D::points[node]))
     {
       break;
     }
-    node = Tree[node];
-  } while (node != -1);
+    node = Point3D::points[node];
+    std::cout << "node: x " << node.point.getX() << " y " << node.point.getY() << " z " << node.point.getZ()  << '\n';
+  } while (!node.start);
   return path;
 }
 
-int PathPlaning::gridIndex(int x, int y)
-{
-  int inverseDeltaX = (Grid.info.width + centerDelta.first);
-  int inverseDeltaY = (Grid.info.height + centerDelta.second);
-  if (x <= centerDelta.first || y <= centerDelta.second || x >= inverseDeltaX || y >= inverseDeltaY)
+bool PathPlaning::sphereIsFree(Point3D node, int radius){
+  for (int i = 0; i <= radius; i++)
   {
-    return -1;
+    for (int j = 0; j <= radius - i; j++)
+    {
+      for(int k = 0; k <= radius - i; k++)
+      {
+        if (!cellIsFree(node.point.getX() + i, node.point.getY() + j, node.point.getZ() + k)
+        || !cellIsFree(node.point.getX() - i, node.point.getY() + j, node.point.getZ() +k)
+        || !cellIsFree(node.point.getX() - i, node.point.getY() - j, node.point.getZ() +k)
+        || !cellIsFree(node.point.getX() - i, node.point.getY() - j, node.point.getZ() -k)
+        || !cellIsFree(node.point.getX() + i, node.point.getY() - j, node.point.getZ() -k)
+        || !cellIsFree(node.point.getX() + i, node.point.getY() + j, node.point.getZ() -k)
+        || !cellIsFree(node.point.getX() - i, node.point.getY() + j, node.point.getZ() -k)
+        || !cellIsFree(node.point.getX() + i, node.point.getY() - j, node.point.getZ() +k))
+        {
+          return false;
+        }
+      }
+    }
   }
-  int rowPos = (centerDelta.first + x * -1);
-  int row = (centerDelta.second - y) + 2;
-  int tmp = Grid.info.width;
-  return ((row * tmp) + rowPos) * -1;
+  return true;
 }
 
-void PathPlaning::setCenterDelta()
+bool PathPlaning::lineIsFree(float x0, float y0, float z0, float x1, float y1, float z1, int radius)
 {
-  int originY = (int)(Grid.info.origin.position.y / Grid.info.resolution);
-  int originX = (int)(Grid.info.origin.position.x / Grid.info.resolution);
-  int deltaY = 0 - originY * -1;
-  int deltaX = 0 - originX * -1;
-  this->centerDelta = std::pair<int, int>(deltaX, deltaY);
+   float dx{abs(x1-x0)};
+   int sx{x0<x1 ? 1 : -1};
+   float dy{abs(y1-y0)};
+   int sy{y0<y1 ? 1 : -1};
+   float dz{abs(z1-z0)};
+   int sz{z0<z1 ? 1 : -1};
+   float dm{std::max(dx, std::max(dy, dz))};
+   float i{dm}; /* maximum difference */
+   x1 = y1 = z1 = dm/2; /* error offset */
+
+   Point3D p_tmp;
+   for(;;) {  /* loop */
+      p_tmp.point.setX(x0);
+      p_tmp.point.setY(y0);
+      p_tmp.point.setZ(z0);
+      if(!sphereIsFree(p_tmp, radius)){
+        return false;
+      }
+      if (i-- <= 0) break;
+      x1 -= dx; if (x1 < 0) { x1 += dm; x0 += sx; }
+      y1 -= dy; if (y1 < 0) { y1 += dm; y0 += sy; }
+      z1 -= dz; if (z1 < 0) { z1 += dm; z0 += sz; }
+   }
 }
 
-void PathPlaning::ajustFloatingPoint()
-{ //Converting floating point numbers to natrual numbers because of the pairing function
-  Pose.position.x = (int)(Pose.position.x * exponent);
-  Pose.position.y = (int)(Pose.position.y * exponent);
-  Pose.position.z = 0;
-
-  goal.x = (int)(goal.x * exponent);
-  goal.y = (int)(goal.y * exponent);
-  goal.z = 0;
-
-  Grid.info.origin.position.x = (int)(Grid.info.origin.position.x * exponent);
-  Grid.info.origin.position.y = (int)(Grid.info.origin.position.y * exponent);
-  Grid.info.origin.position.z = (int)(Grid.info.origin.position.z * exponent);
-
-  Grid.info.resolution = Grid.info.resolution * exponent;
-}
-
-bool PathPlaning::isInitialized()
+bool PathPlaning::isInitialized(pcl::PointCloud<pcl::PointXYZ> cloud, geometry_msgs::Pose pose, geometry_msgs::Point goal)
 {
-  nav_msgs::OccupancyGrid defaultGrid;
-  geometry_msgs::Pose defaultPose;
-  geometry_msgs::Point defaultGoal;
-  return !(this->Grid == defaultGrid) && !(this->Pose == defaultPose) &&
-         !(this->goal == defaultGoal);
+  std::cout << "cloud length: " << cloud.points.size() << '\n';
+  std::cout << "pose : " << pose.position << '\n';
+  std::cout << "goal : " << goal << '\n';
+  return true;
 }
 
-long PathPlaning::pairing(int x, int y)
+float PathPlaning::nodeDistance(Point3D node1, Point3D node2)
 {
-  x = x + this->pairingAdditiv;
-  y = y + this->pairingAdditiv;
-  long z = (0.5 * (x + y) * (x + y + 1) + y);
-  return z;
-}
-
-double PathPlaning::nodeDistance(long node1, long node2)
-{
-  std::pair<int, int> cords1 = depairing(node1);
-  std::pair<int, int> cords2 = depairing(node2);
-  int a = abs(cords1.first - cords2.first);
-  int b = abs(cords1.second - cords2.second);
-  double c = sqrt(pow(a, 2) + pow(b, 2));
-  return c;
-}
-
-std::pair<int, int> PathPlaning::depairing(long z)
-{
-  int y = (int)(z - gschSum(triangularRoot(z)));
-  int x = (int)(triangularRoot(z) - y);
-  x = x - this->pairingAdditiv;
-  y = y - this->pairingAdditiv;
-
-  return std::pair<int, int>(x, y);
-}
-
-//Mathemetical
-int PathPlaning::gschSum(int w)
-{
-  int f = (w * (w + 1)) / 2;
-  return f;
-}
-
-int PathPlaning::triangularRoot(int z)
-{
-  int q = (int)((sqrt(8 * z + 1) - 1) / 2);
-  return q;
+  float a = abs(node1.point.getX() - node2.point.getX());
+  float b = abs(node1.point.getY() - node2.point.getY());
+  float z = abs(node1.point.getZ() - node2.point.getZ());
+  float c1 = sqrt(pow(a, 2) + pow(b, 2));
+  float c2 = sqrt(pow(z, 2) + pow(c1, 2));
+  return c2;
 }
