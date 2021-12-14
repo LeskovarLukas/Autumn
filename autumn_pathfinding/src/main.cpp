@@ -28,7 +28,7 @@ void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
   geometry_msgs::PointStamped goalPoint = *msg;
   goal = goalPoint;
   //              ZED Position     GOAL Position   D    i
-  pp->getPath(currentPose.pose, goalPoint.point, cloud, 0.25, 40000);
+  pp->getPath(currentPose.pose, goalPoint.point, cloud, 0.25, 4000);
 }
 
 void cloud2dcallback(const sensor_msgs::PointCloud2::ConstPtr &msg)
@@ -47,11 +47,12 @@ int main(int argc, char **argv)
   //                      min max
   pp = new PathPlaning(n, 0.04, 0.12);
   std::cout << "subscribing to pose" << '\n';
-  ros::Subscriber pathSub = n.subscribe("/zedi/zed_node/pose", 1, &pathcallback);
+  //ros::Subscriber pathSub = n.subscribe("/zedi/zed_node/pose", 1, &pathcallback);
   std::cout << "subscribing to point" << '\n';
   ros::Subscriber goalSub = n.subscribe("/clicked_point", 1, &pointClickedcallback);
+  std::cout << "sub " << goalSub.getNumPublishers() << '\n';
   std::cout << "subscribing to cloud" << '\n';
-  ros::Subscriber cloudSub = n.subscribe("/zedi/cloud_map", 1, &cloud2dcallback);
+  //ros::Subscriber cloudSub = n.subscribe("/zedi/cloud_map", 1, &cloud2dcallback);
 
   ros::spin();
   return 0;

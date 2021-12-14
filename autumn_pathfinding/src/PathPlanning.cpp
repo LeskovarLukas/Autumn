@@ -72,6 +72,10 @@ void PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl
     Point3D::points.insert({startNode, startNode});
     //calculate direct distance start => goal
     float startGoalMinDistance = nodeDistance(goalNode, startNode);
+    std::cout << "distance " << startGoalMinDistance << '\n';
+    std::cout << "X: " << abs((goal.point.getX() / startGoalMinDistance) * 1.5) << '\n';
+    std::cout << "Y: " << abs((goal.point.getY() / startGoalMinDistance) * 1.5) << '\n';
+    std::cout << "Z: " << abs((goal.point.getZ() / startGoalMinDistance) * 1.5) << '\n';
 
     double minGoalPath = INT_MAX;
     for (int i = 0; i < iteratons; i++)
@@ -157,9 +161,9 @@ void PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl
 
 Point3D PathPlaning::generateXrand(float goalDistance)
 {
-  Point3D p((goalDistance * 1.5 + 0.60) * ((double)rand() / (RAND_MAX)),
-            (goalDistance * 1.5 + 0.60) * ((double)rand() / (RAND_MAX)),
-            (goalDistance * 1.5 + 0.60) * ((double)rand() / (RAND_MAX)));
+  Point3D p((abs((goal.point.getX() / goalDistance) * 1.5) * goalDistance + 0.60) * ((double)rand() / (RAND_MAX)),
+            (abs((goal.point.getY() / goalDistance) * 1.5) * goalDistance + 0.60) * ((double)rand() / (RAND_MAX)),
+            (abs((goal.point.getZ() / goalDistance) * 1.5) * goalDistance + 0.60) * ((double)rand() / (RAND_MAX)));
   p.point.setX(p.point.getX() * pow(-1, rand() % 2));
   p.point.setY(p.point.getY() * pow(-1, rand() % 2));
   p.point.setZ(p.point.getZ() * pow(-1, rand() % 2));
