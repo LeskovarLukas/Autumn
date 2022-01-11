@@ -27,9 +27,8 @@ PathPlaning::PathPlaning(ros::NodeHandle n, int rMin, int rMax)
 };
 
 //PathPlaning Methods
-void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geometry_msgs::Point point, pcl::PointCloud<pcl::PointXYZ> c, int nodeSpacing, int iteratons)
+void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geometry_msgs::Point point, int nodeSpacing, int iteratons)
 {
-  this->cloud = c;
   this->Pose = p;
   this->Grid = g;
   this->goal = point;

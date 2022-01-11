@@ -11,13 +11,12 @@ public:
   bool isInitialized();
 
   //PathPlaning Methods
-  void getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geometry_msgs::Point goal, pcl::PointCloud<pcl::PointXYZ> c, int nodeSpacing, int iteratons);
+  void getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geometry_msgs::Point goal, int nodeSpacing, int iteratons);
 
 private:
   nav_msgs::OccupancyGrid Grid;
   geometry_msgs::Pose Pose;
   geometry_msgs::Point goal;
-  pcl::PointCloud<pcl::PointXYZ> cloud;
   std::map<long, long> Tree;
   std::pair<int, int> centerDelta;
   int radiusCollisionMin;
