@@ -6,9 +6,6 @@
 #include "geometry_msgs/Pose.h"
 #include "geometry_msgs/PointStamped.h"
 #include "sensor_msgs/PointCloud2.h"
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
 //C++ Includes
 #include <iostream>
 #include <iterator>

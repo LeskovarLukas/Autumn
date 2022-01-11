@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(autumn_pathfinding)
+project(autumn_pathfinding_2d)
 include_directories(include)
 
 find_package(catkin REQUIRED COMPONENTS
-  pcl_conversions
-  pcl_ros
   roscpp
   std_msgs
 )

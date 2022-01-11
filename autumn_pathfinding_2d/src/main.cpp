@@ -1,7 +1,4 @@
 #include "ros/ros.h"
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
 #include <sstream>
 #include "nav_msgs/OccupancyGrid.h"
 #include "nav_msgs/Path.h"
@@ -10,7 +7,6 @@
 #include "geometry_msgs/PointStamped.h"
 #include <iostream>
 #include "PathPlanning.h"
-#include <pcl/common/projection_matrix.h>
 
 geometry_msgs::PoseStamped currentPose;
 nav_msgs::OccupancyGrid currentGrid;
