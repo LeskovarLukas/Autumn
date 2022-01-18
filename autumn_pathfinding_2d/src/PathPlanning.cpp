@@ -14,6 +14,7 @@
 #include <time.h>
 //Custom Includes
 #include "PathPlanning.h"
+#include "spdlog/spdlog.h"
 
 //Consturctor
 PathPlaning::PathPlaning(ros::NodeHandle n, int rMin, int rMax)
@@ -58,14 +59,14 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
     //check if goal is colliding
     if (!pathIsFree(goalNode, goalNode, radiusCollisionMax))
     {
-      std::cout << "invalid goal!" << '\n';
+      spdlog::debug("invalid goal");
       return;
     }
     Tree.insert({goalNode, 0});
     //add x_init(zed position) to tree
     if (!pathIsFree(startNode, startNode, radiusCollisionMin))
     {
-      std::cout << "colliding start position" << '\n';
+      spdlog::debug("colliding start position");
     }
     Tree.insert({startNode, -1});
     //calculate direct distance start => goal
@@ -129,15 +130,15 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
         //pubRate.sleep();
       }
     }
-    std::cout << "goal parent " << Tree[goalNode] << "\n";
+    spdlog::debug("goal parent " + Tree[goalNode]);
     nav_msgs::Path path = generatePath(goalNode);
     pubPath.publish(path);
     ros::spinOnce();
-    std::cout << "ended" << '\n';
+    spdlog::info("Ended");
   }
   else
   {
-    std::cout << "Topics haven't published yet!" << '\n';
+    spdlog::warn("Topics haven't published yet!");
   }
 }
 

@@ -7,6 +7,7 @@
 #include "geometry_msgs/PointStamped.h"
 #include <iostream>
 #include "PathPlanning.h"
+#include "spdlog/spdlog.h"
 
 geometry_msgs::PoseStamped currentPose;
 nav_msgs::OccupancyGrid currentGrid;
@@ -46,6 +47,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "explorator");
   ros::NodeHandle n;
+  spdlog::info("Listening");
   //                      min max
   pp = new PathPlaning(n, 4, 12);
   ros::Subscriber gridSub = n.subscribe("/zedi/map", 1, &gridcallback);
