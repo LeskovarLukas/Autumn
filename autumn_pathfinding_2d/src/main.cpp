@@ -47,7 +47,7 @@ void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
   //          OccupancyGrid   ZED Position     GOAL Position   D    i
   std::ostringstream buf;
   buf << "[i=5000, r=10, d=8, D=12];[i=8000, r=20, d=8, D=12];[i=8000, r=40, d=8, D=12];[i=8000, r=80, d=8, D=12];[i=8000, r=160, d=8, D=12];\n";
-  for(int i=0; i < 5; i++){
+  for(int i=0; i < 1; i++){
     pp = new PathPlaning(*n, 10, 10);
     buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 12, 5000) << ";";
     pp = new PathPlaning(*n, 20, 20);

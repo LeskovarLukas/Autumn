@@ -10,6 +10,7 @@
 #include <iostream>
 #include "PathPlanning.h"
 #include <pcl/common/projection_matrix.h>
+#include "spdlog/spdlog.h"
 
 geometry_msgs::PoseStamped currentPose;
 geometry_msgs::PointStamped goal;
@@ -19,6 +20,9 @@ PathPlaning *pp = nullptr;
 void pathcallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
   geometry_msgs::PoseStamped poseData = *msg;
+  poseData.pose.position.x = 0;
+  poseData.pose.position.y = 0;
+  poseData.pose.position.z = 0;
   currentPose = poseData;
   //std::cout << poseData.pose.position << std::endl;
 }
@@ -26,6 +30,9 @@ void pathcallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
 void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
 {
   geometry_msgs::PointStamped goalPoint = *msg;
+  goalPoint.point.x = -8;
+  goalPoint.point.y = 0;
+  goalPoint.point.z = 0;
   goal = goalPoint;
   //              ZED Position     GOAL Position   D    i
   pp->getPath(currentPose.pose, goalPoint.point, cloud, 0.25, 4000);
@@ -46,12 +53,12 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
   //                      min max
   pp = new PathPlaning(n, 0.04, 0.12);
-  std::cout << "subscribing to pose" << '\n';
+  spdlog::info("subscribing to pose");
   //ros::Subscriber pathSub = n.subscribe("/zedi/zed_node/pose", 1, &pathcallback);
-  std::cout << "subscribing to point" << '\n';
+  spdlog::info("subscribing to point");
   ros::Subscriber goalSub = n.subscribe("/clicked_point", 1, &pointClickedcallback);
-  std::cout << "sub " << goalSub.getNumPublishers() << '\n';
-  std::cout << "subscribing to cloud" << '\n';
+  spdlog::info("sub {}", goalSub.getNumPublishers());
+  //std::cout << "subscribing to cloud" << '\n';
   //ros::Subscriber cloudSub = n.subscribe("/zedi/cloud_map", 1, &cloud2dcallback);
 
   ros::spin();

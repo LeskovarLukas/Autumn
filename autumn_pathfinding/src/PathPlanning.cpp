@@ -18,6 +18,7 @@
 //Custom Includes
 #include "PathPlanning.h"
 #include "Point3D.h"
+#include "spdlog/spdlog.h"
 
 //Consturctor
 PathPlaning::PathPlaning(ros::NodeHandle n, float rMin, float rMax)
@@ -33,21 +34,20 @@ PathPlaning::PathPlaning(ros::NodeHandle n, float rMin, float rMax)
 //PathPlaning Methods
 void PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl::PointCloud<pcl::PointXYZ> c, float nodeSpacing, int iteratons)
 {
-  std::cout << "start" << std::endl;
   if (isInitialized(c, p, point))
   {
     this->Pose = p;
     Point3D goalNode{static_cast<float>(point.x), static_cast<float>(point.y), static_cast<float>(point.z)};
     goalNode.goal = true;
     this->goal = goalNode;
-    std::cout << "goal " << goal.point.getX() << " " << goal.point.getY() << " " << goal.point.getZ() << '\n';
+    spdlog::info("goal x: {} y: {} z: {}", goal.point.getX(), goal.point.getY(), goal.point.getZ());
     ros::Rate pubRate(100);
 
     Point3D::addPoints(c);
     //initialize goal node
     //NEED TO CHECK IF GOAL IS VALID!!
     Point3D startNode(Pose.position.x, Pose.position.y, Pose.position.z);
-    std::cout << "start " << startNode.point.getX() << " " << startNode.point.getY() << " " << startNode.point.getZ() << '\n';
+    spdlog::info("start x: {} y: {} z: {}", startNode.point.getX(), startNode.point.getY(), startNode.point.getZ());
     startNode.start = true;
     //check if previous path is still valid && connects new position to best path node;
     if (prevPathValid(startNode, goalNode, nodeSpacing))
@@ -60,28 +60,28 @@ void PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl
     //check if goal is colliding
     if (!pathIsFree(goalNode, goalNode, radiusCollisionMax))
     {
-      std::cout << "invalid goal!" << '\n';
+      spdlog::error("invalid goal!");
       return;
     }
     Point3D::points.insert({goalNode, goalNode});
     //add x_init(zed position) to tree
     if (!pathIsFree(startNode, startNode, radiusCollisionMin))
     {
-      std::cout << "colliding start position" << '\n';
+      spdlog::error("colliding start position");
     }
     Point3D::points.insert({startNode, startNode});
     //calculate direct distance start => goal
     float startGoalMinDistance = nodeDistance(goalNode, startNode);
-    std::cout << "distance " << startGoalMinDistance << '\n';
-    std::cout << "X: " << abs((goal.point.getX() / startGoalMinDistance) * 1.5) << '\n';
-    std::cout << "Y: " << abs((goal.point.getY() / startGoalMinDistance) * 1.5) << '\n';
-    std::cout << "Z: " << abs((goal.point.getZ() / startGoalMinDistance) * 1.5) << '\n';
+    spdlog::info("distance {}", startGoalMinDistance);
+    spdlog::info("X: {}", abs((goal.point.getX() / startGoalMinDistance) * 1.5));
+    spdlog::info("Y: {}", abs((goal.point.getY() / startGoalMinDistance) * 1.5));
+    spdlog::info("Z: {}", abs((goal.point.getZ() / startGoalMinDistance) * 1.5));
 
     double minGoalPath = INT_MAX;
     for (int i = 0; i < iteratons; i++)
     {
       if(i % 1000 == 0){
-        std::cout << "iteration: " << i << '\n';
+        spdlog::info("iteration: {}", i);
       }
       //generate random Node
       Point3D randNode = generateXrand(startGoalMinDistance);
@@ -151,11 +151,11 @@ void PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl
     nav_msgs::Path path = generatePath(goalNode);
     pubPath.publish(path);
     ros::spinOnce();
-    std::cout << "ended" << '\n';
+    spdlog::info("ended");
   }
   else
   {
-    std::cout << "Topics haven't published yet!" << '\n';
+    spdlog::warn("Topics haven't published yet!");
   }
 }
 
@@ -386,7 +386,6 @@ nav_msgs::Path PathPlaning::generatePath(Point3D goalNode)
   path.header.seq = 0;
   path.header.stamp = ros::Time::now();
   path.header.frame_id = "map";
-  std::cout << "\n" << "goal Path:" << '\n';
   Point3D node = goalNode;
   do
   {
@@ -396,7 +395,6 @@ nav_msgs::Path PathPlaning::generatePath(Point3D goalNode)
       break;
     }
     node = Point3D::points[node];
-    std::cout << "node: x " << node.point.getX() << " y " << node.point.getY() << " z " << node.point.getZ()  << '\n';
   } while (!node.start);
   return path;
 }
@@ -454,9 +452,9 @@ bool PathPlaning::lineIsFree(float x0, float y0, float z0, float x1, float y1, f
 
 bool PathPlaning::isInitialized(pcl::PointCloud<pcl::PointXYZ> cloud, geometry_msgs::Pose pose, geometry_msgs::Point goal)
 {
-  std::cout << "cloud length: " << cloud.points.size() << '\n';
-  std::cout << "pose : " << pose.position << '\n';
-  std::cout << "goal : " << goal << '\n';
+  spdlog::info("cloud length: {}", cloud.points.size());
+  spdlog::info("pose : {}", pose.position);
+  spdlog::info("goal : {}", goal);
   return true;
 }
 
