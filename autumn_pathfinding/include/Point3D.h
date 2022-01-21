@@ -46,13 +46,14 @@ struct Point3D
   //Methods
   bool equals(Point3D p);
   bool operator<(const Point3D b) const;
+  bool start();
 
   //Member Variables [Cords]
+  static PointVls* point_start;
   PointVls point;
 
-  bool valid{};
-  bool goal{};
-  bool start{};
+  bool valid{true};
+  bool goal{false};
 };
 
 long hashPoint(PointVls p);

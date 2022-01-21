@@ -15,6 +15,7 @@
 #include <map>
 #include <math.h>
 #include <time.h>
+#include <chrono>
 //Custom Includes
 #include "PathPlanning.h"
 #include "Point3D.h"
@@ -32,10 +33,11 @@ PathPlaning::PathPlaning(ros::NodeHandle n, float rMin, float rMax)
 };
 
 //PathPlaning Methods
-void PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl::PointCloud<pcl::PointXYZ> c, float nodeSpacing, int iteratons)
+double PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl::PointCloud<pcl::PointXYZ> c, float nodeSpacing, int iteratons)
 {
   if (isInitialized(c, p, point))
   {
+    auto time_start = std::chrono::high_resolution_clock::now();
     this->Pose = p;
     Point3D goalNode{static_cast<float>(point.x), static_cast<float>(point.y), static_cast<float>(point.z)};
     goalNode.goal = true;
@@ -48,20 +50,20 @@ void PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl
     //NEED TO CHECK IF GOAL IS VALID!!
     Point3D startNode(Pose.position.x, Pose.position.y, Pose.position.z);
     spdlog::info("start x: {} y: {} z: {}", startNode.point.getX(), startNode.point.getY(), startNode.point.getZ());
-    startNode.start = true;
+    Point3D::point_start = &startNode.point;
     //check if previous path is still valid && connects new position to best path node;
-    if (prevPathValid(startNode, goalNode, nodeSpacing))
+    if (false && prevPathValid(startNode, goalNode, nodeSpacing))
     {
       nav_msgs::Path path = generatePath(goalNode);
       pubPath.publish(path);
       ros::spinOnce();
-      return;
+      return -1;
     }
     //check if goal is colliding
     if (!pathIsFree(goalNode, goalNode, radiusCollisionMax))
     {
       spdlog::error("invalid goal!");
-      return;
+      return -1;
     }
     Point3D::points.insert({goalNode, goalNode});
     //add x_init(zed position) to tree
@@ -73,18 +75,16 @@ void PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl
     //calculate direct distance start => goal
     float startGoalMinDistance = nodeDistance(goalNode, startNode);
     spdlog::info("distance {}", startGoalMinDistance);
-    spdlog::info("X: {}", abs((goal.point.getX() / startGoalMinDistance) * 1.5));
-    spdlog::info("Y: {}", abs((goal.point.getY() / startGoalMinDistance) * 1.5));
-    spdlog::info("Z: {}", abs((goal.point.getZ() / startGoalMinDistance) * 1.5));
 
     double minGoalPath = INT_MAX;
     for (int i = 0; i < iteratons; i++)
     {
-      if(i % 1000 == 0){
-        spdlog::info("iteration: {}", i);
+      if(i % 1 == 0){
+        spdlog::debug("iteration: {}", i);
       }
       //generate random Node
       Point3D randNode = generateXrand(startGoalMinDistance);
+      spdlog::debug("generated rand Node");
       //pubRandNode.publish(generatePoint(randNode));
       //find nearest node to x_rand
       Point3D nearestNode = getNearestNode(randNode);
@@ -92,6 +92,7 @@ void PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl
         //std::cout << "nearest Node invalid" << '\n';
         continue;
       }
+      spdlog::debug("Nearest neighbors found");
       //generate new node based of x_near in direction x_rand with distance d
       Point3D newNode = generateNewNode(nearestNode, randNode, nodeSpacing);
       if (Point3D::points.count(newNode) || !newNode.valid)
@@ -99,12 +100,14 @@ void PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl
         //std::cout << "continue duplicate " << newNode.point.getX() << " " << newNode.point.getY() << " " << newNode.point.getZ() << '\n';
         continue;
       }
-      if (nearestNode.start || pathIsFree(newNode, nearestNode, radiusCollisionMax))
+      spdlog::debug("new node");
+      if (nearestNode.start() || pathIsFree(newNode, nearestNode, radiusCollisionMax))
       {
         //pubNewNode.publish(generatePoint(newNode));
         //ros::spinOnce();
         //pubRate.sleep();
         //Get neighboring nodes
+        spdlog::debug("new valid");
         double range = nodeSpacing; //log(Tree.size()) / pow(Tree.size(), 1/nodeSpacing); //calculate search radius
         std::vector<Point3D> nearNeighbors = getNearestNeighbors(newNode, range);
         //Find closest node to x_new
@@ -112,9 +115,10 @@ void PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl
         double nearestNodePathLength = getPathLength(nearestNode);
         if (nearestNodePathLength == -1)
         {
-          //std::cout << "continue path invalid" << '\n';
+          spdlog::warn("continue path invalid");
           continue;
         }
+        spdlog::debug("path valid");
         double minDist = nearestNodePathLength + nodeDistance(nearestNode, newNode);
         for (Point3D node : nearNeighbors)
         {
@@ -126,35 +130,44 @@ void PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, pcl
           }
         }
         Point3D::points.insert({newNode, minNeighbor});
+        spdlog::debug("min neighbor path");
         //Rewire neighbors to optimal pathSub
         for (Point3D node : nearNeighbors)
         {
           double pathLength = getPathLength(node);
+          spdlog::debug("--rewire iteration path length: {}", pathLength);
           if (pathLength != -1 && getPathLength(newNode) + nodeDistance(node, newNode) < pathLength && pathIsFree(newNode, node, radiusCollisionMax))
           {
             Point3D::points[node] = newNode;
           }
         }
+        spdlog::debug("rewire Tee");
         //Check if goal is within reach
         double goalNewNodeDist = nodeDistance(newNode, goalNode);
         if (goalNewNodeDist <= nodeSpacing && getPathLength(newNode) + goalNewNodeDist < minGoalPath && pathIsFree(goalNode, newNode, radiusCollisionMax))
         {
           Point3D::points[goalNode] = newNode;
           minGoalPath = getPathLength(newNode) + goalNewNodeDist;
-          nav_msgs::Path path = generatePath(goalNode);
-          pubPath.publish(path);
+          //nav_msgs::Path path = generatePath(goalNode);
+          //pubPath.publish(path);
           //break;
         }
+        spdlog::debug("iteration");
         //pubRate.sleep();
       }
     }
     nav_msgs::Path path = generatePath(goalNode);
+    auto time_end = std::chrono::high_resolution_clock::now();
     pubPath.publish(path);
     ros::spinOnce();
+    std::chrono::duration<double, std::milli> ms_double = time_end - time_start;
+    spdlog::info(ms_double.count());
     spdlog::info("ended");
+    return ms_double.count();
   }
   else
   {
+    return -1;
     spdlog::warn("Topics haven't published yet!");
   }
 }
@@ -242,7 +255,7 @@ double PathPlaning::getPathLength(Point3D node)
   double length = 0;
   do
   {
-    if(node.start){
+    if(node.start()){
       break;
     }
     length += nodeDistance(node, Point3D::points[node]);
@@ -251,7 +264,7 @@ double PathPlaning::getPathLength(Point3D node)
       return -1;
     }
     node = Point3D::points[node];
-  }while (!node.start);
+  }while (!node.start());
   return length;
 }
 
@@ -283,7 +296,7 @@ bool PathPlaning::prevPathValid(Point3D newPosNode, Point3D goalNode, int nodeSp
     Point3D *minDistNode = nullptr;
 
     double pathLength = nodeDistance(goalNode, Point3D::points[goalNode]);
-    while (!Point3D::points[node].start)
+    while (!Point3D::points[node].start())
     {
       //check for collisions and loops
       if (!pathIsFree(node, Point3D::points[node], radiusCollisionMin) || node.equals(Point3D::points[node]))
@@ -293,7 +306,7 @@ bool PathPlaning::prevPathValid(Point3D newPosNode, Point3D goalNode, int nodeSp
           //locate last node before collision and publish a path based on it
           Point3D endNode;
           endNode.valid = false;
-          while (!Point3D::points[node].start)
+          while (!Point3D::points[node].start())
           {
             if (node.equals(Point3D::points[node]))
             {
@@ -307,7 +320,7 @@ bool PathPlaning::prevPathValid(Point3D newPosNode, Point3D goalNode, int nodeSp
                 endNode = node;
               }
             }
-            else if (!Point3D::points[node].start)
+            else if (!Point3D::points[node].start())
             {
               endNode.valid = false;
             }
@@ -339,12 +352,11 @@ bool PathPlaning::prevPathValid(Point3D newPosNode, Point3D goalNode, int nodeSp
     //check if path has been found
     if (minGoalPath != 0)
     {
-      if (minDistNode->start)
+      if (minDistNode->start())
       {
         return false;
       }
       Point3D::points[*minDistNode] = newPosNode;
-      Point3D::points[newPosNode].start = true;
     }
     return true;
   }
@@ -395,7 +407,7 @@ nav_msgs::Path PathPlaning::generatePath(Point3D goalNode)
       break;
     }
     node = Point3D::points[node];
-  } while (!node.start);
+  } while (!node.start());
   return path;
 }
 
@@ -452,9 +464,9 @@ bool PathPlaning::lineIsFree(float x0, float y0, float z0, float x1, float y1, f
 
 bool PathPlaning::isInitialized(pcl::PointCloud<pcl::PointXYZ> cloud, geometry_msgs::Pose pose, geometry_msgs::Point goal)
 {
-  spdlog::info("cloud length: {}", cloud.points.size());
-  spdlog::info("pose : {}", pose.position);
-  spdlog::info("goal : {}", goal);
+  //spdlog::info("cloud length: {}", cloud.points.size());
+  //spdlog::info("pose : {}", pose.position);
+  //spdlog::info("goal : {}", goal);
   return true;
 }
 

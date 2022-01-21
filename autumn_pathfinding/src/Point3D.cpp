@@ -60,9 +60,10 @@ std::ostream& operator<<(std::ostream& os, const PointVls& vls) {
    return os;
 }
 
+PointVls* Point3D::point_start = nullptr;
+
 Point3D::Point3D(){
   goal = false;
-  start = false;
   valid = false;
 }
 
@@ -81,7 +82,6 @@ Point3D::Point3D(float x, float y, float z){
 
 Point3D& Point3D::operator=(const Point3D& p){
   point = p.point;
-  start = p.start;
   valid = p.valid;
   goal = p.goal;
   return *this;
@@ -93,6 +93,10 @@ Point3D::Point3D(PointVls p){
 
 bool Point3D::equals(Point3D p){
   return p.point.getX() == this->point.getX() && p.point.getY() == this->point.getY() && p.point.getZ() == this->point.getZ();
+}
+
+bool Point3D::start(){
+  return this->equals(*Point3D::point_start);
 }
 
 void Point3D::addPoints(pcl::PointCloud<pcl::PointXYZ> cloud){
