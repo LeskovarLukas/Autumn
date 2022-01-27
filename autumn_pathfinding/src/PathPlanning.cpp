@@ -37,19 +37,20 @@ double PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, p
 {
   if (isInitialized(c, p, point))
   {
+    Point3D::reset();
     auto time_start = std::chrono::high_resolution_clock::now();
     this->Pose = p;
     Point3D goalNode{static_cast<float>(point.x), static_cast<float>(point.y), static_cast<float>(point.z)};
     goalNode.goal = true;
     this->goal = goalNode;
-    spdlog::info("goal x: {} y: {} z: {}", goal.point.getX(), goal.point.getY(), goal.point.getZ());
+    //spdlog::info("goal x: {} y: {} z: {}", goal.point.getX(), goal.point.getY(), goal.point.getZ());
     ros::Rate pubRate(100);
 
     Point3D::addPoints(c);
     //initialize goal node
     //NEED TO CHECK IF GOAL IS VALID!!
     Point3D startNode(Pose.position.x, Pose.position.y, Pose.position.z);
-    spdlog::info("start x: {} y: {} z: {}", startNode.point.getX(), startNode.point.getY(), startNode.point.getZ());
+    //spdlog::info("start x: {} y: {} z: {}", startNode.point.getX(), startNode.point.getY(), startNode.point.getZ());
     Point3D::point_start = &startNode.point;
     //check if previous path is still valid && connects new position to best path node;
     if (false && prevPathValid(startNode, goalNode, nodeSpacing))
@@ -74,11 +75,13 @@ double PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, p
     Point3D::points.insert({startNode, startNode});
     //calculate direct distance start => goal
     float startGoalMinDistance = nodeDistance(goalNode, startNode);
-    spdlog::info("distance {}", startGoalMinDistance);
+    //spdlog::info("distance {}", startGoalMinDistance);
 
     double minGoalPath = INT_MAX;
+    auto time_start_it = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < iteratons; i++)
     {
+      time_start_it = std::chrono::high_resolution_clock::now();
       if(i % 1 == 0){
         spdlog::debug("iteration: {}", i);
       }

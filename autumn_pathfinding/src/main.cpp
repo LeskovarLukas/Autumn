@@ -38,23 +38,33 @@ void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
   goal = goalPoint;
   //              ZED Position     GOAL Position   D    i
   std::ostringstream buf;
-  buf << "[i=5000, r=10, d=8, D=12];[i=5000, r=20, d=8, D=12];[i=5000, r=40, d=8, D=12];[i=5000, r=80, d=8, D=12];[i=5000, r=160, d=8, D=12];\n";
-  for(int i=0; i < 10; i++){
+  buf << "[i=1000, r=10, d=4, D=12];[i=1000, r=20, d=4, D=12];[i=1000, r=40, d=4, D=12];" <<
+  "[i=1000, r=80, d=4, D=12];[i=1000, r=120, d=4, D=12];[i=1000, r=160, d=4, D=12];[i=1000, r=240, d=4, D=12];[i=1000, r=320, d=4, D=12];\n";
+  for(int i=0; i < 500; i++){
     delete pp;
     pp = new PathPlaning(*n, 0.1, 0.1);
-    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 0.12, 4000) << ";";
+    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";";
     delete pp;
     pp = new PathPlaning(*n, 0.2, 0.2);
-    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 5000) << ";";
+    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";";
     delete pp;
     pp = new PathPlaning(*n, 0.4, 0.4);
-    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 5000) << ";";
+    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";";
     delete pp;
     pp = new PathPlaning(*n, 0.8, 0.8);
-    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 5000) << ";";
+    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";";
+    delete pp;
+    pp = new PathPlaning(*n, 1.2, 1.2);
+    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";";
     delete pp;
     pp = new PathPlaning(*n, 1.6, 1.6);
-    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 5000) << ";\n";
+    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";";
+    delete pp;
+    pp = new PathPlaning(*n, 2.4, 2.4);
+    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";";
+    delete pp;
+    pp = new PathPlaning(*n, 3.2, 3.2);
+    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";\n";
   }
   std::cout << buf.str() << '\n';
 }
@@ -72,7 +82,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "explorator");
   n = new ros::NodeHandle();
-  spdlog::set_level(spdlog::level::info);
+  spdlog::set_level(spdlog::level::off);
   //                      min max
   //spdlog::info("subscribing to pose");
   //ros::Subscriber pathSub = n.subscribe("/zedi/zed_node/pose", 1, &pathcallback);

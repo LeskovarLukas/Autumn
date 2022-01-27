@@ -42,6 +42,7 @@ struct Point3D
   static std::map<Point3D, Point3D> points;
   static std::map<long, Point3D* const> pointCldDic; //Contains Point cloud points
   static void addPoints(pcl::PointCloud<pcl::PointXYZ> cloud);
+  static void reset();
 
   //Methods
   bool equals(Point3D p);

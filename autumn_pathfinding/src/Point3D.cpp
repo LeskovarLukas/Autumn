@@ -110,6 +110,18 @@ void Point3D::addPoints(pcl::PointCloud<pcl::PointXYZ> cloud){
   }
 }
 
+void Point3D::reset(){
+  while (!Point3D::points.empty())
+  {
+    Point3D::points.erase(Point3D::points.begin());
+  }
+
+  while (!Point3D::pointCldDic.empty())
+  {
+    Point3D::pointCldDic.erase(Point3D::pointCldDic.begin());
+  }
+}
+
 long hashPoint(PointVls p){
   std::hash<float> hash_float;
   std::size_t h1 = hash_float(p.getX());

@@ -23,7 +23,7 @@ void gridcallback(const nav_msgs::OccupancyGrid::ConstPtr &msg)
   if (!activePathPlanning)
   {
     activePathPlanning = true;
-    pp->getPath(currentGrid, currentPose.pose, goal.point, 12, 8000);
+    pp->getPath(currentGrid, currentPose.pose, goal.point, 12, 1000);
     activePathPlanning = false;
   }
 }
@@ -31,7 +31,7 @@ void gridcallback(const nav_msgs::OccupancyGrid::ConstPtr &msg)
 void pathcallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
   geometry_msgs::PoseStamped poseData = *msg;
-  poseData.pose.position.x = -8;
+  poseData.pose.position.x = -4;
   poseData.pose.position.y = 0;
   poseData.pose.position.z = 0;
   currentPose = poseData;
@@ -41,23 +41,23 @@ void pathcallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
 void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
 {
   geometry_msgs::PointStamped goalPoint = *msg;
-  goalPoint.point.x = 8;
+  goalPoint.point.x = 4;
   goalPoint.point.y = 0;
   goal = goalPoint;
   //          OccupancyGrid   ZED Position     GOAL Position   D    i
   std::ostringstream buf;
-  buf << "[i=5000, r=10, d=8, D=12];[i=8000, r=20, d=8, D=12];[i=8000, r=40, d=8, D=12];[i=8000, r=80, d=8, D=12];[i=8000, r=160, d=8, D=12];\n";
-  for(int i=0; i < 1; i++){
+  buf << "[i=1000, r=10, d=8, D=12];[i=1000, r=20, d=8, D=12];[i=1000, r=40, d=8, D=12];[i=1000, r=80, d=8, D=12];[i=1000, r=160, d=8, D=12];\n";
+  for(int i=0; i < 1000; i++){
     pp = new PathPlaning(*n, 10, 10);
-    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 12, 5000) << ";";
+    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 1200, 1000) << ";";
     pp = new PathPlaning(*n, 20, 20);
-    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 12, 5000) << ";";
+    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 1200, 1000) << ";";
     pp = new PathPlaning(*n, 40, 40);
-    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 12, 5000) << ";";
+    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 1200, 1000) << ";";
     pp = new PathPlaning(*n, 80, 80);
-    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 12, 5000) << ";";
-    pp = new PathPlaning(*n, 160, 160);
-    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 12, 5000) << ";\n";
+    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 1200, 1000) << ";";
+    pp = new PathPlaning(*n, 1600, 1600);
+    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 1200, 1000) << ";\n";
   }
   std::cout << buf.str() << '\n';
 }
