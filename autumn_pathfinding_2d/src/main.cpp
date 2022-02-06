@@ -31,11 +31,25 @@ void gridcallback(const nav_msgs::OccupancyGrid::ConstPtr &msg)
 void pathcallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
   geometry_msgs::PoseStamped poseData = *msg;
-  poseData.pose.position.x = -4;
+  poseData.pose.position.x = 0;
   poseData.pose.position.y = 0;
   poseData.pose.position.z = 0;
   currentPose = poseData;
   //std::cout << poseData.pose.position << std::endl;
+}
+
+void functionTestCall(int radiusStart, int radiusStop, int stepSize, int it, std::ostringstream& buf){
+  for(int i=radiusStart; i<=radiusStop; i+=stepSize){
+    buf << "[i=1000, r=" << i << ", d=4, D=12];";
+  }
+  buf << "\n";
+  for(int j=0; j<it; j++){
+    for(int i=radiusStart; i<=radiusStop; i+=stepSize){
+      pp = new PathPlaning(*n, i, i);
+      buf << pp->getPath(currentGrid, currentPose.pose, goal.point, 120, 1000) << ";";
+    }
+    buf << "\n";
+  }
 }
 
 void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
@@ -46,19 +60,7 @@ void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
   goal = goalPoint;
   //          OccupancyGrid   ZED Position     GOAL Position   D    i
   std::ostringstream buf;
-  buf << "[i=1000, r=10, d=8, D=12];[i=1000, r=20, d=8, D=12];[i=1000, r=40, d=8, D=12];[i=1000, r=80, d=8, D=12];[i=1000, r=160, d=8, D=12];\n";
-  for(int i=0; i < 1000; i++){
-    pp = new PathPlaning(*n, 10, 10);
-    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 1200, 1000) << ";";
-    pp = new PathPlaning(*n, 20, 20);
-    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 1200, 1000) << ";";
-    pp = new PathPlaning(*n, 40, 40);
-    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 1200, 1000) << ";";
-    pp = new PathPlaning(*n, 80, 80);
-    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 1200, 1000) << ";";
-    pp = new PathPlaning(*n, 1600, 1600);
-    buf << pp->getPath(currentGrid, currentPose.pose, goalPoint.point, 1200, 1000) << ";\n";
-  }
+  functionTestCall(0, 320, 40, 5, buf);
   std::cout << buf.str() << '\n';
 }
 
@@ -66,7 +68,7 @@ void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "explorator");
-  spdlog::info("Listening");
+  //spdlog::info("Listening");
   n = new ros::NodeHandle();
   nav_msgs::OccupancyGrid grid;
   spdlog::set_level(spdlog::level::off);

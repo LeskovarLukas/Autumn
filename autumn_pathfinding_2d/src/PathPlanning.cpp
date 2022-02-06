@@ -170,7 +170,7 @@ std::pair<int, int> PathPlaning::generateXrand(double goalDistance)
 
 bool PathPlaning::cellIsFree(int x, int y)
 {
-  return true;
+  return x != 0.2;
   int index = gridIndex(x, y);
   if (index >= Grid.info.width * Grid.info.height || index < 0)
   {

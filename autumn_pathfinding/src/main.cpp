@@ -29,6 +29,21 @@ void pathcallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
   //std::cout << poseData.pose.position << std::endl;
 }
 
+void functionTestCall(double radiusStart, double radiusStop, double stepSize, int it, std::ostringstream& buf){
+  for(double i=radiusStart; i<=radiusStop; i+=stepSize){
+    buf << "[i=1000, r=" << i << ", d=4, D=12];";
+  }
+  buf << "\n";
+  for(int j=0; j<it; j++){
+    for(double i=radiusStart; i<=radiusStop; i+=stepSize){
+      pp = new PathPlaning(*n, i, i);
+      buf << pp->getPath(currentPose.pose, goal.point, cloud, 12, 1000) << ";";
+      delete pp;
+    }
+    buf << "\n";
+  }
+}
+
 void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
 {
   geometry_msgs::PointStamped goalPoint = *msg;
@@ -38,34 +53,7 @@ void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
   goal = goalPoint;
   //              ZED Position     GOAL Position   D    i
   std::ostringstream buf;
-  buf << "[i=1000, r=10, d=4, D=12];[i=1000, r=20, d=4, D=12];[i=1000, r=40, d=4, D=12];" <<
-  "[i=1000, r=80, d=4, D=12];[i=1000, r=120, d=4, D=12];[i=1000, r=160, d=4, D=12];[i=1000, r=240, d=4, D=12];[i=1000, r=320, d=4, D=12];\n";
-  for(int i=0; i < 500; i++){
-    delete pp;
-    pp = new PathPlaning(*n, 0.1, 0.1);
-    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";";
-    delete pp;
-    pp = new PathPlaning(*n, 0.2, 0.2);
-    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";";
-    delete pp;
-    pp = new PathPlaning(*n, 0.4, 0.4);
-    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";";
-    delete pp;
-    pp = new PathPlaning(*n, 0.8, 0.8);
-    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";";
-    delete pp;
-    pp = new PathPlaning(*n, 1.2, 1.2);
-    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";";
-    delete pp;
-    pp = new PathPlaning(*n, 1.6, 1.6);
-    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";";
-    delete pp;
-    pp = new PathPlaning(*n, 2.4, 2.4);
-    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";";
-    delete pp;
-    pp = new PathPlaning(*n, 3.2, 3.2);
-    buf << pp->getPath(currentPose.pose, goalPoint.point, cloud, 12, 1000) << ";\n";
-  }
+  functionTestCall(0, 3.2, 0.4, 100, buf);
   std::cout << buf.str() << '\n';
 }
 

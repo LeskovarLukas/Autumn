@@ -82,12 +82,8 @@ double PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, p
     for (int i = 0; i < iteratons; i++)
     {
       time_start_it = std::chrono::high_resolution_clock::now();
-      if(i % 1 == 0){
-        spdlog::debug("iteration: {}", i);
-      }
       //generate random Node
       Point3D randNode = generateXrand(startGoalMinDistance);
-      spdlog::debug("generated rand Node");
       //pubRandNode.publish(generatePoint(randNode));
       //find nearest node to x_rand
       Point3D nearestNode = getNearestNode(randNode);
@@ -95,7 +91,6 @@ double PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, p
         //std::cout << "nearest Node invalid" << '\n';
         continue;
       }
-      spdlog::debug("Nearest neighbors found");
       //generate new node based of x_near in direction x_rand with distance d
       Point3D newNode = generateNewNode(nearestNode, randNode, nodeSpacing);
       if (Point3D::points.count(newNode) || !newNode.valid)
@@ -103,7 +98,6 @@ double PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, p
         //std::cout << "continue duplicate " << newNode.point.getX() << " " << newNode.point.getY() << " " << newNode.point.getZ() << '\n';
         continue;
       }
-      spdlog::debug("new node");
       if (nearestNode.start() || pathIsFree(newNode, nearestNode, radiusCollisionMax))
       {
         //pubNewNode.publish(generatePoint(newNode));
@@ -138,13 +132,11 @@ double PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, p
         for (Point3D node : nearNeighbors)
         {
           double pathLength = getPathLength(node);
-          spdlog::debug("--rewire iteration path length: {}", pathLength);
           if (pathLength != -1 && getPathLength(newNode) + nodeDistance(node, newNode) < pathLength && pathIsFree(newNode, node, radiusCollisionMax))
           {
             Point3D::points[node] = newNode;
           }
         }
-        spdlog::debug("rewire Tee");
         //Check if goal is within reach
         double goalNewNodeDist = nodeDistance(newNode, goalNode);
         if (goalNewNodeDist <= nodeSpacing && getPathLength(newNode) + goalNewNodeDist < minGoalPath && pathIsFree(goalNode, newNode, radiusCollisionMax))
