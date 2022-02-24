@@ -93,8 +93,8 @@ std::pair<double, double> PathPlaning::getPath(nav_msgs::OccupancyGrid g, geomet
       }
       if (startNode == nearestNode || pathIsFree(newNode, nearestNode, radiusCollisionMax))
       {
-        //pubNewNode.publish(generatePoint(newNode));
-        //ros::spinOnce();
+        pubNewNode.publish(generatePoint(newNode));
+        ros::spinOnce();
         //Get neighboring nodes
         double range = nodeSpacing; //log(Tree.size()) / pow(Tree.size(), 1/nodeSpacing); //calculate search radius
         std::vector<long> nearNeighbors = getNearestNeighbors(newNode, range, goalNode);
@@ -136,7 +136,7 @@ std::pair<double, double> PathPlaning::getPath(nav_msgs::OccupancyGrid g, geomet
         //pubRate.sleep();
       }
     }
-    if(Tree.count(goalNode)){
+    if(Tree.count(goalNode) && Tree[goalNode] != 0){
       spdlog::debug("goal parent ");
       nav_msgs::Path path = generatePath(goalNode);
       pubPath.publish(path);
@@ -455,6 +455,7 @@ void PathPlaning::setCenterDelta()
   int originX = (int)(Grid.info.origin.position.x / Grid.info.resolution);
   int deltaY = 0 - originY * -1;
   int deltaX = 0 - originX * -1;
+  spdlog::info("Delta| originY {}, originX {}, deltaY {}, deltaX {}", originY, originX, deltaX, deltaY);
   this->centerDelta = std::pair<int, int>(deltaX, deltaY);
 }
 

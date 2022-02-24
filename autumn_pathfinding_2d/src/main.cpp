@@ -54,19 +54,22 @@ void functionTestCall(int valueStart, int valueStop, int stepSize, int it, std::
       buf2 << res.second << ";";
     }
     buf << "\n";
+    buf2 << "\n";
   }
 }
 
 void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
 {
   geometry_msgs::PointStamped goalPoint = *msg;
-  /*goalPoint.point.x = 2;
-  goalPoint.point.y = 2;*/
-  goal = goalPoint;
+  currentPose.pose.position.x = goalPoint.point.x;//2.6;
+  currentPose.pose.position.y = goalPoint.point.y;//0.3;
+  goalPoint.point.x = 0;
+  goalPoint.point.y = 0;
+  goal = goalPoint; 
   //          OccupancyGrid   ZED Position     GOAL Position   D    i
   std::ostringstream buf;
   std::ostringstream buf2;
-  functionTestCall(4500, 5000, 500, 1, buf, buf2);
+  functionTestCall(20000, 20000, 500, 1, buf, buf2);
   std::cout << buf.str() << '\n';
   std::cout << "----------------------------------------------------------------------" << std::endl;
   std::cout << buf2.str() << '\n';
@@ -80,16 +83,13 @@ int main(int argc, char **argv)
   n = new ros::NodeHandle();
   nav_msgs::OccupancyGrid grid;
   spdlog::set_level(spdlog::level::debug);
-  grid.info.resolution = 0.05;
-  grid.info.width = 100;
-  grid.info.height = 100;
   geometry_msgs::PoseStamped poseData;
-  poseData.pose.position.x = 0;
-  poseData.pose.position.y = 0;
+  poseData.pose.position.x = -0.1;//2.6;
+  poseData.pose.position.y = 0.1;//0.3;
   poseData.pose.position.z = 0;
   currentPose = poseData;
   //                      min max
-  pp = new PathPlaning(*n, 4, 12);
+  pp = new PathPlaning(*n, 4, 8);
   ros::Subscriber gridSub = n->subscribe("/map", 1, &gridcallback);
   //ros::Subscriber pathSub = n.subscribe("/zedi/zed_node/pose", 1, &pathcallback);
   ros::Subscriber goalSub = n->subscribe("/clicked_point", 1, &pointClickedcallback);
