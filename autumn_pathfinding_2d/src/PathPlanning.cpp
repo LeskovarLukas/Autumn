@@ -91,8 +91,13 @@ std::pair<double, double> PathPlaning::getPath(nav_msgs::OccupancyGrid g, geomet
       { //Check if node is already in Tree
         continue;
       }
-      if (startNode == nearestNode || pathIsFree(newNode, nearestNode, radiusCollisionMax))
+      double spacingCounter = 1;
+      while (startNode != nearestNode && !pathIsFree(newNode, nearestNode, radiusCollisionMax) && spacingCounter < nodeSpacing)
       {
+        long newNode = generateNewNode(nearestNode, pairing(randCords.first, randCords.second), nodeSpacing - spacingCounter);
+        spacingCounter += spacingCounter * 0.2;
+      }
+      if(startNode == nearestNode || pathIsFree(newNode, nearestNode, radiusCollisionMax)){
         pubNewNode.publish(generatePoint(newNode));
         ros::spinOnce();
         //Get neighboring nodes
@@ -149,6 +154,8 @@ std::pair<double, double> PathPlaning::getPath(nav_msgs::OccupancyGrid g, geomet
       return res;
     }else{
       spdlog::info("No path Found");
+      res = {-1, -1};
+      return res;
     }
   }
   else

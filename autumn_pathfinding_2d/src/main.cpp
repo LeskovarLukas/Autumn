@@ -48,7 +48,7 @@ void functionTestCall(int valueStart, int valueStop, int stepSize, int it, std::
   pp = new PathPlaning(*n, 2, 2);
   for(int j=0; j<it; j++){
     for(int i=valueStart; i<=valueStop; i+=stepSize){
-      std::pair<double, double> res = pp->getPath(currentGrid, currentPose.pose, goal.point, 12, i);
+      std::pair<double, double> res = pp->getPath(currentGrid, currentPose.pose, goal.point, 4, i);
       spdlog::info("test {} {}", res.first, res.second);
       buf << res.first << ";";
       buf2 << res.second << ";";
@@ -61,15 +61,13 @@ void functionTestCall(int valueStart, int valueStop, int stepSize, int it, std::
 void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
 {
   geometry_msgs::PointStamped goalPoint = *msg;
-  currentPose.pose.position.x = goalPoint.point.x;//2.6;
-  currentPose.pose.position.y = goalPoint.point.y;//0.3;
-  goalPoint.point.x = 0;
-  goalPoint.point.y = 0;
+  goalPoint.point.x = -1.8;
+  goalPoint.point.y = 1.7;
   goal = goalPoint; 
   //          OccupancyGrid   ZED Position     GOAL Position   D    i
   std::ostringstream buf;
   std::ostringstream buf2;
-  functionTestCall(20000, 20000, 500, 1, buf, buf2);
+  functionTestCall(500, 10000, 200, 500, buf, buf2);
   std::cout << buf.str() << '\n';
   std::cout << "----------------------------------------------------------------------" << std::endl;
   std::cout << buf2.str() << '\n';
@@ -82,10 +80,10 @@ int main(int argc, char **argv)
   //spdlog::info("Listening");
   n = new ros::NodeHandle();
   nav_msgs::OccupancyGrid grid;
-  spdlog::set_level(spdlog::level::debug);
+  spdlog::set_level(spdlog::level::off);
   geometry_msgs::PoseStamped poseData;
-  poseData.pose.position.x = -0.1;//2.6;
-  poseData.pose.position.y = 0.1;//0.3;
+  poseData.pose.position.x = 2.7;//2.6;
+  poseData.pose.position.y = -2.1;//0.3;
   poseData.pose.position.z = 0;
   currentPose = poseData;
   //                      min max
