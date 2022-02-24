@@ -40,15 +40,15 @@ std::pair<double, double> PathPlaning::getPath(nav_msgs::OccupancyGrid g, geomet
   if (isInitialized() || true)
   {
     //get rid of the floating point
-    this->exponent = 10;//pow(10, abs((int)log10(Grid.info.resolution)) + 1);
+    this->exponent = pow(10, abs((int)log10(Grid.info.resolution)) + 1);
     ajustFloatingPoint();
     //initialize goal node
-    long goalNode = pairing(goal.x, goal.y );
+    long goalNode = pairing(goal.x / Grid.info.resolution, goal.y / Grid.info.resolution);
     if (goalNode == 0)
     {
       return res;
     }
-    long startNode = pairing(Pose.position.x , Pose.position.y );
+    long startNode = pairing(Pose.position.x / Grid.info.resolution , Pose.position.y / Grid.info.resolution);
     spdlog::debug("x: {}, y: {}", (Pose.position.x), (Pose.position.y));
     //check if previous path is still valid && connects new position to best path node;
     if (false && prevPathValid(startNode, goalNode, nodeSpacing))
@@ -168,7 +168,6 @@ std::pair<int, int> PathPlaning::generateXrand(double goalDistance)
 
 bool PathPlaning::cellIsFree(int x, int y)
 {
-  return x != 0.2;
   int index = gridIndex(x, y);
   if (index >= Grid.info.width * Grid.info.height || index < 0)
   {
@@ -406,8 +405,8 @@ geometry_msgs::PoseStamped PathPlaning::generatePose(long node)
   msg.header.stamp = ros::Time::now();
   msg.header.frame_id = "map";
   std::pair<int, int> cords = depairing(node);
-  msg.pose.position.x = (cords.first) / exponent;
-  msg.pose.position.y = (cords.second) / exponent;
+  msg.pose.position.x = (cords.first * Grid.info.resolution) / exponent;
+  msg.pose.position.y = (cords.second * Grid.info.resolution) / exponent;
   msg.pose.position.z = 0;
   msg.pose.orientation.x = 0;
   msg.pose.orientation.y = 0;
@@ -452,8 +451,8 @@ int PathPlaning::gridIndex(int x, int y)
 
 void PathPlaning::setCenterDelta()
 {
-  int originY = (int)(Grid.info.origin.position.y );
-  int originX = (int)(Grid.info.origin.position.x );
+  int originY = (int)(Grid.info.origin.position.y / Grid.info.resolution);
+  int originX = (int)(Grid.info.origin.position.x / Grid.info.resolution);
   int deltaY = 0 - originY * -1;
   int deltaX = 0 - originX * -1;
   this->centerDelta = std::pair<int, int>(deltaX, deltaY);

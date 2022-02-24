@@ -31,8 +31,8 @@ void gridcallback(const nav_msgs::OccupancyGrid::ConstPtr &msg)
 void pathcallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
   geometry_msgs::PoseStamped poseData = *msg;
-  poseData.pose.position.x = 0;
-  poseData.pose.position.y = 0;
+  poseData.pose.position.x = -2;
+  poseData.pose.position.y = 2;
   poseData.pose.position.z = 0;
   currentPose = poseData;
   //std::cout << poseData.pose.position << std::endl;
@@ -40,15 +40,15 @@ void pathcallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
 
 void functionTestCall(int valueStart, int valueStop, int stepSize, int it, std::ostringstream& buf, std::ostringstream& buf2){
   for(int i=valueStart; i<=valueStop; i+=stepSize){
-    buf << "[i="<< i << ", r=0, d=4, D=12];";
-    buf2 << "[i="<< i << ", r=0, d=4, D=12];";
+    buf << "[i="<< i << ", r=0, d=4, D=1.2];";
+    buf2 << "[i="<< i << ", r=0, d=4, D=1.2];";
   }
   buf << "\n";
   buf2 << "\n";
-  pp = new PathPlaning(*n, 0, 0);
+  pp = new PathPlaning(*n, 2, 2);
   for(int j=0; j<it; j++){
     for(int i=valueStart; i<=valueStop; i+=stepSize){
-      std::pair<double, double> res = pp->getPath(currentGrid, currentPose.pose, goal.point, 120, i);
+      std::pair<double, double> res = pp->getPath(currentGrid, currentPose.pose, goal.point, 12, i);
       spdlog::info("test {} {}", res.first, res.second);
       buf << res.first << ";";
       buf2 << res.second << ";";
@@ -60,13 +60,13 @@ void functionTestCall(int valueStart, int valueStop, int stepSize, int it, std::
 void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
 {
   geometry_msgs::PointStamped goalPoint = *msg;
-  goalPoint.point.x = 4;
-  goalPoint.point.y = 0;
+  /*goalPoint.point.x = 2;
+  goalPoint.point.y = 2;*/
   goal = goalPoint;
   //          OccupancyGrid   ZED Position     GOAL Position   D    i
   std::ostringstream buf;
   std::ostringstream buf2;
-  functionTestCall(500, 5000, 500, 1, buf, buf2);
+  functionTestCall(4500, 5000, 500, 1, buf, buf2);
   std::cout << buf.str() << '\n';
   std::cout << "----------------------------------------------------------------------" << std::endl;
   std::cout << buf2.str() << '\n';
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
   //spdlog::info("Listening");
   n = new ros::NodeHandle();
   nav_msgs::OccupancyGrid grid;
-  spdlog::set_level(spdlog::level::off);
+  spdlog::set_level(spdlog::level::debug);
   grid.info.resolution = 0.05;
   grid.info.width = 100;
   grid.info.height = 100;
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
   currentPose = poseData;
   //                      min max
   pp = new PathPlaning(*n, 4, 12);
-  //ros::Subscriber gridSub = n.subscribe("/zedi/map", 1, &gridcallback);
+  ros::Subscriber gridSub = n->subscribe("/map", 1, &gridcallback);
   //ros::Subscriber pathSub = n.subscribe("/zedi/zed_node/pose", 1, &pathcallback);
   ros::Subscriber goalSub = n->subscribe("/clicked_point", 1, &pointClickedcallback);
 
