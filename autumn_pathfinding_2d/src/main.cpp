@@ -38,15 +38,20 @@ void pathcallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
   //std::cout << poseData.pose.position << std::endl;
 }
 
-void functionTestCall(int radiusStart, int radiusStop, int stepSize, int it, std::ostringstream& buf){
-  for(int i=radiusStart; i<=radiusStop; i+=stepSize){
-    buf << "[i=1000, r=" << i << ", d=4, D=12];";
+void functionTestCall(int valueStart, int valueStop, int stepSize, int it, std::ostringstream& buf, std::ostringstream& buf2){
+  for(int i=valueStart; i<=valueStop; i+=stepSize){
+    buf << "[i="<< i << ", r=0, d=4, D=12];";
+    buf2 << "[i="<< i << ", r=0, d=4, D=12];";
   }
   buf << "\n";
+  buf2 << "\n";
+  pp = new PathPlaning(*n, 0, 0);
   for(int j=0; j<it; j++){
-    for(int i=radiusStart; i<=radiusStop; i+=stepSize){
-      pp = new PathPlaning(*n, i, i);
-      buf << pp->getPath(currentGrid, currentPose.pose, goal.point, 120, 1000) << ";";
+    for(int i=valueStart; i<=valueStop; i+=stepSize){
+      std::pair<double, double> res = pp->getPath(currentGrid, currentPose.pose, goal.point, 120, i);
+      spdlog::info("test {} {}", res.first, res.second);
+      buf << res.first << ";";
+      buf2 << res.second << ";";
     }
     buf << "\n";
   }
@@ -60,8 +65,11 @@ void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
   goal = goalPoint;
   //          OccupancyGrid   ZED Position     GOAL Position   D    i
   std::ostringstream buf;
-  functionTestCall(0, 320, 40, 5, buf);
+  std::ostringstream buf2;
+  functionTestCall(500, 5000, 500, 1, buf, buf2);
   std::cout << buf.str() << '\n';
+  std::cout << "----------------------------------------------------------------------" << std::endl;
+  std::cout << buf2.str() << '\n';
 }
 
 

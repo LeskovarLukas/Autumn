@@ -53,7 +53,7 @@ void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
   goal = goalPoint;
   //              ZED Position     GOAL Position   D    i
   std::ostringstream buf;
-  functionTestCall(0, 3.2, 0.4, 100, buf);
+  functionTestCall(0, 3.2, 0.4, 2, buf);
   std::cout << buf.str() << '\n';
 }
 
