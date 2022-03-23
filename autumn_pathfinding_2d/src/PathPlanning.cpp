@@ -51,7 +51,7 @@ std::pair<double, double> PathPlaning::getPath(nav_msgs::OccupancyGrid g, geomet
     long startNode = pairing(Pose.position.x / Grid.info.resolution , Pose.position.y / Grid.info.resolution);
     spdlog::debug("x: {}, y: {}", (Pose.position.x), (Pose.position.y));
     //check if previous path is still valid && connects new position to best path node;
-    if (false && prevPathValid(startNode, goalNode, nodeSpacing))
+    if (prevPathValid(startNode, goalNode, nodeSpacing))
     {
       nav_msgs::Path path = generatePath(goalNode);
       pubPath.publish(path);

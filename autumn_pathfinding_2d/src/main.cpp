@@ -35,7 +35,6 @@ void pathcallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
   poseData.pose.position.y = 2;
   poseData.pose.position.z = 0;
   currentPose = poseData;
-  //std::cout << poseData.pose.position << std::endl;
 }
 
 void functionTestCall(int valueStart, int valueStop, int stepSize, int it, std::ostringstream& buf, std::ostringstream& buf2){
@@ -61,16 +60,12 @@ void functionTestCall(int valueStart, int valueStop, int stepSize, int it, std::
 void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
 {
   geometry_msgs::PointStamped goalPoint = *msg;
-  goalPoint.point.x = -1.8;
-  goalPoint.point.y = 1.7;
   goal = goalPoint; 
+  pp->getPath(currentGrid, currentPose.pose, goal.point, 10, 10000);
   //          OccupancyGrid   ZED Position     GOAL Position   D    i
-  std::ostringstream buf;
+  /*std::ostringstream buf;
   std::ostringstream buf2;
-  functionTestCall(500, 10000, 200, 500, buf, buf2);
-  std::cout << buf.str() << '\n';
-  std::cout << "----------------------------------------------------------------------" << std::endl;
-  std::cout << buf2.str() << '\n';
+  functionTestCall(0, 10000, 500, 300, buf, buf2);*///Tests
 }
 
 
@@ -80,16 +75,11 @@ int main(int argc, char **argv)
   //spdlog::info("Listening");
   n = new ros::NodeHandle();
   nav_msgs::OccupancyGrid grid;
-  spdlog::set_level(spdlog::level::off);
-  geometry_msgs::PoseStamped poseData;
-  poseData.pose.position.x = 2.7;//2.6;
-  poseData.pose.position.y = -2.1;//0.3;
-  poseData.pose.position.z = 0;
-  currentPose = poseData;
+  spdlog::set_level(spdlog::level::debug);
   //                      min max
   pp = new PathPlaning(*n, 4, 8);
-  ros::Subscriber gridSub = n->subscribe("/map", 1, &gridcallback);
-  //ros::Subscriber pathSub = n.subscribe("/zedi/zed_node/pose", 1, &pathcallback);
+  ros::Subscriber gridSub = n->subscribe("/zedi/map", 1, &gridcallback);
+  ros::Subscriber pathSub = n->subscribe("/zedi/zed_node/pose", 1, &pathcallback);
   ros::Subscriber goalSub = n->subscribe("/clicked_point", 1, &pointClickedcallback);
 
   ros::spin();
