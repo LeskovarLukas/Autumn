@@ -23,7 +23,7 @@ void gridcallback(const nav_msgs::OccupancyGrid::ConstPtr &msg)
   if (!activePathPlanning)
   {
     activePathPlanning = true;
-    pp->getPath(currentGrid, currentPose.pose, goal.point, 12, 1000);
+    pp->getPath(currentGrid, currentPose.pose, goal.point, 10, 1000);
     activePathPlanning = false;
   }
 }
@@ -31,9 +31,6 @@ void gridcallback(const nav_msgs::OccupancyGrid::ConstPtr &msg)
 void pathcallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
   geometry_msgs::PoseStamped poseData = *msg;
-  poseData.pose.position.x = -2;
-  poseData.pose.position.y = 2;
-  poseData.pose.position.z = 0;
   currentPose = poseData;
 }
 
@@ -61,7 +58,7 @@ void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
 {
   geometry_msgs::PointStamped goalPoint = *msg;
   goal = goalPoint; 
-  pp->getPath(currentGrid, currentPose.pose, goal.point, 10, 10000);
+  pp->getPath(currentGrid, currentPose.pose, goal.point, 6, 10000);
   //          OccupancyGrid   ZED Position     GOAL Position   D    i
   /*std::ostringstream buf;
   std::ostringstream buf2;
@@ -77,7 +74,7 @@ int main(int argc, char **argv)
   nav_msgs::OccupancyGrid grid;
   spdlog::set_level(spdlog::level::debug);
   //                      min max
-  pp = new PathPlaning(*n, 4, 8);
+  pp = new PathPlaning(*n, 2, 6);
   ros::Subscriber gridSub = n->subscribe("/zedi/map", 1, &gridcallback);
   ros::Subscriber pathSub = n->subscribe("/zedi/zed_node/pose", 1, &pathcallback);
   ros::Subscriber goalSub = n->subscribe("/clicked_point", 1, &pointClickedcallback);
