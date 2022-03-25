@@ -22,8 +22,8 @@ ros::NodeHandle *n;
 void pathcallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
   geometry_msgs::PoseStamped poseData = *msg;
-  currentPose = poseData;
-  //std::cout << poseData.pose.position << std::endl;
+  //currentPose = poseData;
+  std::cout << poseData.pose.position << std::endl;
 }
 
 void functionTestCall(double radiusStart, double radiusStop, double stepSize, int it, std::ostringstream &buf)
@@ -51,7 +51,7 @@ void pointClickedcallback(const geometry_msgs::PointStamped::ConstPtr &msg)
   goal = goalPoint;
   //              ZED Position     GOAL Position   D    i
   std::ostringstream buf;
-  pp->getPath(currentPose.pose, goal.point, cloud, 12, 1000);
+  pp->getPath(currentPose.pose, goal.point, cloud, 0.25, 4000);
   /*functionTestCall(0, 3.2, 0.4, 2, buf);
   std::cout << buf.str() << '\n';*/
 }
@@ -69,10 +69,11 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "explorator");
   n = new ros::NodeHandle();
-  spdlog::set_level(spdlog::level::debug);
+  pp = new PathPlaning(*n, 0.04, 0.12);
   currentPose.pose.position.x = 0;
   currentPose.pose.position.y = 0;
   currentPose.pose.position.z = 0;
+  spdlog::set_level(spdlog::level::info);
   //                      min max
   spdlog::info("subscribing to pose");
   //ros::Subscriber pathSub = n->subscribe("/zedi/zed_node/pose", 1, &pathcallback);
