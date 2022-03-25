@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(autumn_pathfinding)
 include_directories(include)
+include_directories(../spdlog)
 
 find_package(catkin REQUIRED COMPONENTS
   pcl_conversions

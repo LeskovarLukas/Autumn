@@ -42,17 +42,19 @@ struct Point3D
   static std::map<Point3D, Point3D> points;
   static std::map<long, Point3D* const> pointCldDic; //Contains Point cloud points
   static void addPoints(pcl::PointCloud<pcl::PointXYZ> cloud);
+  static void reset();
 
   //Methods
   bool equals(Point3D p);
   bool operator<(const Point3D b) const;
+  bool start();
 
   //Member Variables [Cords]
+  static PointVls* point_start;
   PointVls point;
 
-  bool valid{};
-  bool goal{};
-  bool start{};
+  bool valid{true};
+  bool goal{false};
 };
 
 long hashPoint(PointVls p);

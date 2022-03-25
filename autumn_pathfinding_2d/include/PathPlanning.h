@@ -11,7 +11,7 @@ public:
   bool isInitialized();
 
   //PathPlaning Methods
-  void getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geometry_msgs::Point goal, int nodeSpacing, int iteratons);
+  std::pair<double, double> getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geometry_msgs::Point goal, int nodeSpacing, int iteratons);
 
 private:
   nav_msgs::OccupancyGrid Grid;

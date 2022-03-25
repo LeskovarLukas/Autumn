@@ -12,8 +12,10 @@
 #include <map>
 #include <math.h>
 #include <time.h>
+#include <chrono>
 //Custom Includes
 #include "PathPlanning.h"
+#include "spdlog/spdlog.h"
 
 //Consturctor
 PathPlaning::PathPlaning(ros::NodeHandle n, int rMin, int rMax)
@@ -27,13 +29,15 @@ PathPlaning::PathPlaning(ros::NodeHandle n, int rMin, int rMax)
 };
 
 //PathPlaning Methods
-void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geometry_msgs::Point point, int nodeSpacing, int iteratons)
+std::pair<double, double> PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geometry_msgs::Point point, int nodeSpacing, int iteratons)
 {
   this->Pose = p;
   this->Grid = g;
   this->goal = point;
+  std::pair<double, double> res;
   ros::Rate pubRate(100);
-  if (isInitialized())
+  auto time_start = std::chrono::high_resolution_clock::now();
+  if (isInitialized() || true)
   {
     //get rid of the floating point
     this->exponent = pow(10, abs((int)log10(Grid.info.resolution)) + 1);
@@ -42,30 +46,31 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
     long goalNode = pairing(goal.x / Grid.info.resolution, goal.y / Grid.info.resolution);
     if (goalNode == 0)
     {
-      return;
+      return res;
     }
-    long startNode = pairing(Pose.position.x / Grid.info.resolution, Pose.position.y / Grid.info.resolution);
+    long startNode = pairing(Pose.position.x / Grid.info.resolution , Pose.position.y / Grid.info.resolution);
+    spdlog::debug("x: {}, y: {}", (Pose.position.x), (Pose.position.y));
     //check if previous path is still valid && connects new position to best path node;
     if (prevPathValid(startNode, goalNode, nodeSpacing))
     {
       nav_msgs::Path path = generatePath(goalNode);
       pubPath.publish(path);
       ros::spinOnce();
-      return;
+      return res;
     }
     Tree.clear();
     setCenterDelta();
     //check if goal is colliding
     if (!pathIsFree(goalNode, goalNode, radiusCollisionMax))
     {
-      std::cout << "invalid goal!" << '\n';
-      return;
+      spdlog::debug("invalid goal");
+      return res;
     }
     Tree.insert({goalNode, 0});
     //add x_init(zed position) to tree
     if (!pathIsFree(startNode, startNode, radiusCollisionMin))
     {
-      std::cout << "colliding start position" << '\n';
+      spdlog::debug("colliding start position");
     }
     Tree.insert({startNode, -1});
     //calculate direct distance start => goal
@@ -75,19 +80,26 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
     {
       //generate random Node
       std::pair<int, int> randCords = generateXrand(startGoalMinDistance);
-      pubRandNode.publish(generatePoint(pairing(randCords.first, randCords.second)));
+      //pubRandNode.publish(generatePoint(pairing(randCords.first, randCords.second)));
       //find nearest node to x_rand
       long nearestNode = getNearestNode(randCords.first, randCords.second, goalNode);
+      std::pair<int, int> cords = depairing(nearestNode);
       //generate new node based of x_near in direction x_rand with distance d
       long newNode = generateNewNode(nearestNode, pairing(randCords.first, randCords.second), nodeSpacing);
+      cords = depairing(newNode);
       if (Tree.count(newNode) || newNode == -1)
       { //Check if node is already in Tree
         continue;
       }
-      if (startNode == nearestNode || pathIsFree(newNode, nearestNode, radiusCollisionMax))
+      double spacingCounter = 1;
+      while (startNode != nearestNode && !pathIsFree(newNode, nearestNode, radiusCollisionMax) && spacingCounter < nodeSpacing)
       {
-        //pubNewNode.publish(generatePoint(newNode));
-        //ros::spinOnce();
+        long newNode = generateNewNode(nearestNode, pairing(randCords.first, randCords.second), nodeSpacing - spacingCounter);
+        spacingCounter += spacingCounter * 0.2;
+      }
+      if(startNode == nearestNode || pathIsFree(newNode, nearestNode, radiusCollisionMax)){
+        pubNewNode.publish(generatePoint(newNode));
+        ros::spinOnce();
         //Get neighboring nodes
         double range = nodeSpacing; //log(Tree.size()) / pow(Tree.size(), 1/nodeSpacing); //calculate search radius
         std::vector<long> nearNeighbors = getNearestNeighbors(newNode, range, goalNode);
@@ -129,15 +141,26 @@ void PathPlaning::getPath(nav_msgs::OccupancyGrid g, geometry_msgs::Pose p, geom
         //pubRate.sleep();
       }
     }
-    std::cout << "goal parent " << Tree[goalNode] << "\n";
-    nav_msgs::Path path = generatePath(goalNode);
-    pubPath.publish(path);
-    ros::spinOnce();
-    std::cout << "ended" << '\n';
+    if(Tree.count(goalNode) && Tree[goalNode] != 0){
+      spdlog::debug("goal parent ");
+      nav_msgs::Path path = generatePath(goalNode);
+      pubPath.publish(path);
+      ros::spinOnce();
+      spdlog::debug("Ended");
+      spdlog::info("direct dist {}", nodeDistance(startNode, goalNode));
+      auto time_end = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double, std::milli> ms_double = time_end - time_start;
+      res = {ms_double.count(), getPathLength(goalNode)};
+      return res;
+    }else{
+      spdlog::info("No path Found");
+      res = {-1, -1};
+      return res;
+    }
   }
   else
   {
-    std::cout << "Topics haven't published yet!" << '\n';
+    spdlog::warn("Topics haven't published yet!");
   }
 }
 
@@ -262,15 +285,15 @@ long PathPlaning::generateNewNode(long nearest, long random, int d)
 double PathPlaning::getPathLength(long node)
 {
   double length = 0;
-  do
+  while (Tree[node] != -1)
   {
-    length += nodeDistance(node, Tree[node]);
     if (node == Tree[node])
     {
       return -1;
     }
+    length += nodeDistance(node, Tree[node]);
     node = Tree[node];
-  } while (node != -1);
+  };
   return length;
 }
 
@@ -408,6 +431,7 @@ nav_msgs::Path PathPlaning::generatePath(long goalNode)
   long node = goalNode;
   do
   {
+    std::pair<int, int> cords = depairing(node);
     path.poses.push_back(generatePose(node));
     if (node == Tree[node])
     {
@@ -438,6 +462,7 @@ void PathPlaning::setCenterDelta()
   int originX = (int)(Grid.info.origin.position.x / Grid.info.resolution);
   int deltaY = 0 - originY * -1;
   int deltaX = 0 - originX * -1;
+  spdlog::info("Delta| originY {}, originX {}, deltaY {}, deltaX {}", originY, originX, deltaX, deltaY);
   this->centerDelta = std::pair<int, int>(deltaX, deltaY);
 }
 
