@@ -87,7 +87,8 @@ double PathPlaning::getPath(geometry_msgs::Pose p, geometry_msgs::Point point, p
       //pubRandNode.publish(generatePoint(randNode));
       //find nearest node to x_rand
       Point3D nearestNode = getNearestNode(randNode);
-      if(!nearestNode.valid){
+      if (!nearestNode.valid)
+      {
         //std::cout << "nearest Node invalid" << '\n';
         continue;
       }
@@ -181,7 +182,8 @@ Point3D PathPlaning::generateXrand(float goalDistance)
 bool PathPlaning::cellIsFree(float x, float y, float z)
 {
   PointVls pv(x, y, z);
-  if(Point3D::pointCldDic.count(hashPoint(pv))){
+  if (Point3D::pointCldDic.count(hashPoint(pv)))
+  {
     return false;
   }
   return true;
@@ -189,10 +191,11 @@ bool PathPlaning::cellIsFree(float x, float y, float z)
 
 bool PathPlaning::pathIsFree(Point3D node1, Point3D node2, int radius)
 {
-  if(!sphereIsFree(node1, radius) || !sphereIsFree(node2, radius)){
+  if (!sphereIsFree(node1, radius) || !sphereIsFree(node2, radius))
+  {
     return false;
   }
-                  //float x1   , float y1     , float z1     , float x2     , float y2     , float z2     , int radius
+  //float x1   , float y1     , float z1     , float x2     , float y2     , float z2     , int radius
   if (!lineIsFree(node1.point.getX(), node1.point.getY(), node1.point.getZ(), node2.point.getX(), node2.point.getY(), node2.point.getZ(), radius))
   {
     return false;
@@ -250,7 +253,8 @@ double PathPlaning::getPathLength(Point3D node)
   double length = 0;
   do
   {
-    if(node.start()){
+    if (node.start())
+    {
       break;
     }
     length += nodeDistance(node, Point3D::points[node]);
@@ -259,7 +263,7 @@ double PathPlaning::getPathLength(Point3D node)
       return -1;
     }
     node = Point3D::points[node];
-  }while (!node.start());
+  } while (!node.start());
   return length;
 }
 
@@ -403,24 +407,19 @@ nav_msgs::Path PathPlaning::generatePath(Point3D goalNode)
     }
     node = Point3D::points[node];
   } while (!node.start());
+  path.poses.push_back(generatePose(node));
   return path;
 }
 
-bool PathPlaning::sphereIsFree(Point3D node, int radius){
+bool PathPlaning::sphereIsFree(Point3D node, int radius)
+{
   for (int i = 0; i <= radius; i++)
   {
     for (int j = 0; j <= radius - i; j++)
     {
-      for(int k = 0; k <= radius - i; k++)
+      for (int k = 0; k <= radius - i; k++)
       {
-        if (!cellIsFree(node.point.getX() + i, node.point.getY() + j, node.point.getZ() + k)
-        || !cellIsFree(node.point.getX() - i, node.point.getY() + j, node.point.getZ() +k)
-        || !cellIsFree(node.point.getX() - i, node.point.getY() - j, node.point.getZ() +k)
-        || !cellIsFree(node.point.getX() - i, node.point.getY() - j, node.point.getZ() -k)
-        || !cellIsFree(node.point.getX() + i, node.point.getY() - j, node.point.getZ() -k)
-        || !cellIsFree(node.point.getX() + i, node.point.getY() + j, node.point.getZ() -k)
-        || !cellIsFree(node.point.getX() - i, node.point.getY() + j, node.point.getZ() -k)
-        || !cellIsFree(node.point.getX() + i, node.point.getY() - j, node.point.getZ() +k))
+        if (!cellIsFree(node.point.getX() + i, node.point.getY() + j, node.point.getZ() + k) || !cellIsFree(node.point.getX() - i, node.point.getY() + j, node.point.getZ() + k) || !cellIsFree(node.point.getX() - i, node.point.getY() - j, node.point.getZ() + k) || !cellIsFree(node.point.getX() - i, node.point.getY() - j, node.point.getZ() - k) || !cellIsFree(node.point.getX() + i, node.point.getY() - j, node.point.getZ() - k) || !cellIsFree(node.point.getX() + i, node.point.getY() + j, node.point.getZ() - k) || !cellIsFree(node.point.getX() - i, node.point.getY() + j, node.point.getZ() - k) || !cellIsFree(node.point.getX() + i, node.point.getY() - j, node.point.getZ() + k))
         {
           return false;
         }
@@ -432,29 +431,47 @@ bool PathPlaning::sphereIsFree(Point3D node, int radius){
 
 bool PathPlaning::lineIsFree(float x0, float y0, float z0, float x1, float y1, float z1, int radius)
 {
-   float dx{abs(x1-x0)};
-   int sx{x0<x1 ? 1 : -1};
-   float dy{abs(y1-y0)};
-   int sy{y0<y1 ? 1 : -1};
-   float dz{abs(z1-z0)};
-   int sz{z0<z1 ? 1 : -1};
-   float dm{std::max(dx, std::max(dy, dz))};
-   float i{dm}; /* maximum difference */
-   x1 = y1 = z1 = dm/2; /* error offset */
+  float dx{abs(x1 - x0)};
+  int sx{x0 < x1 ? 1 : -1};
+  float dy{abs(y1 - y0)};
+  int sy{y0 < y1 ? 1 : -1};
+  float dz{abs(z1 - z0)};
+  int sz{z0 < z1 ? 1 : -1};
+  float dm{std::max(dx, std::max(dy, dz))};
+  float i{dm};           /* maximum difference */
+  x1 = y1 = z1 = dm / 2; /* error offset */
 
-   Point3D p_tmp;
-   for(;;) {  /* loop */
-      p_tmp.point.setX(x0);
-      p_tmp.point.setY(y0);
-      p_tmp.point.setZ(z0);
-      if(!sphereIsFree(p_tmp, radius)){
-        return false;
-      }
-      if (i-- <= 0) break;
-      x1 -= dx; if (x1 < 0) { x1 += dm; x0 += sx; }
-      y1 -= dy; if (y1 < 0) { y1 += dm; y0 += sy; }
-      z1 -= dz; if (z1 < 0) { z1 += dm; z0 += sz; }
-   }
+  Point3D p_tmp;
+  for (;;)
+  { /* loop */
+    p_tmp.point.setX(x0);
+    p_tmp.point.setY(y0);
+    p_tmp.point.setZ(z0);
+    if (!sphereIsFree(p_tmp, radius))
+    {
+      return false;
+    }
+    if (i-- <= 0)
+      break;
+    x1 -= dx;
+    if (x1 < 0)
+    {
+      x1 += dm;
+      x0 += sx;
+    }
+    y1 -= dy;
+    if (y1 < 0)
+    {
+      y1 += dm;
+      y0 += sy;
+    }
+    z1 -= dz;
+    if (z1 < 0)
+    {
+      z1 += dm;
+      z0 += sz;
+    }
+  }
 }
 
 bool PathPlaning::isInitialized(pcl::PointCloud<pcl::PointXYZ> cloud, geometry_msgs::Pose pose, geometry_msgs::Point goal)
